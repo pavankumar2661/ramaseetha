@@ -3,41 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rama Seetha Game</title>
+    <title>Rama Seetha Synced Game</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f7f6; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        h2 { color: #d32f2f; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f7f6; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
+        h2 { color: #d32f2f; margin-top: 0; }
         button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; }
         .link-box { background: #fff3e0; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 18px; border: 2px dashed #ff9800; color: #d32f2f; margin: 15px 0; }
         .code-highlight { font-size: 36px; display: block; color: #1976d2; margin-top: 10px; font-family: monospace; }
         .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN 1: CHOOSE MODE / ENTER SHORT CODE -->
+    <!-- SCREEN 1: HOME SETUP -->
     <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
-        <button onclick="startAsDealer()" style="background: #4caf50;">I am Phone 1 (Dealer / Rama)</button>
+        <button id="dealer-btn" onclick="startAsDealer()" style="background: #4caf50;">I am Phone 1 (Dealer / Rama)</button>
         <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
         <p><strong>Other Players:</strong> Enter the 3-digit code shown on Rama's screen:</p>
-        <input type="number" id="code-input" placeholder="e.g. 101" style="padding: 12px; font-size: 18px; width: 80%; text-align: center; border-radius: 6px; border: 1px solid #ccc;">
+        <input type="number" id="code-input" placeholder="e.g. 123" style="padding: 12px; font-size: 18px; width: 80%; text-align: center; border-radius: 6px; border: 1px solid #ccc;">
         <button onclick="checkShortCode()" style="background: #0288d1;">View My Secret Chit</button>
     </div>
 
     <!-- SCREEN 2: DEALER DASHBOARD -->
     <div id="screen-dealer" class="card hidden">
         <h2>🏹 Dealer Dashboard</h2>
-        <p id="link-instruction"></p>
+        <p id="link-instruction">Generating game data...</p>
         
         <div class="link-box">
-            Your Game Link: <br>
-            <span id="base-url-text" style="font-size:14px; color:#555; font-weight:normal;"></span>
-            <span id="short-code-text" class="code-highlight"></span>
+            Enter this 3-digit code:
+            <span id="short-code-text" class="code-highlight">---</span>
         </div>
         
         <button onclick="nextLink()" id="next-btn">Show Next Friend's Code</button>
@@ -78,14 +78,19 @@
     </div>
 
     <script>
+        // Using a public free tracking bin channel to handle multi-device data streams
+        const BIN_ID = "65f1a2b3df5e957827e41100"; 
+        const API_URL = `https://jsonbin.io{BIN_ID}`;
+        
         let roles = ["Sita", "Hanuman", "Ravana"];
         let assignedRoles = {};
         let currentFriendIndex = 1;
-        
-        // Custom 3-digit short code map strings
         let generatedCodes = { "1": "", "2": "", "3": "" };
 
         function startAsDealer() {
+            document.getElementById("dealer-btn").disabled = true;
+            document.getElementById("dealer-btn").textContent = "Creating Room...";
+
             // Shuffle roles simple
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -95,24 +100,31 @@
             assignedRoles["2"] = roles;
             assignedRoles["3"] = roles;
 
-            // Generate temporary random 3 digit short codes for this round
+            // Generate unique distinct 3 digit room sync codes
             generatedCodes["1"] = String(Math.floor(100 + Math.random() * 900));
             generatedCodes["2"] = String(Math.floor(100 + Math.random() * 900));
             generatedCodes["3"] = String(Math.floor(100 + Math.random() * 900));
 
-            // Save secret round states to localStorage so players typing on Phone 1 can read it
-            localStorage.setItem("current_game_roles", JSON.stringify(assignedRoles));
-            localStorage.setItem("current_game_codes", JSON.stringify(generatedCodes));
-
-            document.getElementById("screen-home").classList.add("hidden");
-            document.getElementById("screen-dealer").classList.remove("hidden");
-            
-            displayLink(1);
+            // Upload to the cloud server so other phones can fetch it
+            fetch(API_URL, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Bin-Meta": "false"
+                },
+                body: JSON.stringify({ roles: assignedRoles, codes: generatedCodes })
+            })
+            .then(res => res.json())
+            .then(() => {
+                document.getElementById("screen-home").classList.add("hidden");
+                document.getElementById("screen-dealer").classList.remove("hidden");
+                displayLink(1);
+            })
+            .catch(() => alert("Network error. Please try again."));
         }
 
         function displayLink(num) {
-            document.getElementById("link-instruction").innerHTML = `📢 Tell <strong>Friend ${num}</strong> to open your main link and type code:`;
-            document.getElementById("base-url-text").textContent = window.location.href.split('?')[0];
+            document.getElementById("link-instruction").innerHTML = `📢 Tell <strong>Friend ${num}</strong> to enter this code on their screen:`;
             document.getElementById("short-code-text").textContent = generatedCodes[num];
         }
 
@@ -129,24 +141,29 @@
 
         function checkShortCode() {
             let userCode = document.getElementById("code-input").value.trim();
-            let savedCodes = JSON.parse(localStorage.getItem("current_game_codes"));
-            let savedRoles = JSON.parse(localStorage.getItem("current_game_roles"));
+            if(!userCode) return alert("Please type a code!");
 
-            if (!savedCodes || !savedRoles) {
-                alert("No active game found! Phone 1 must start the game first.");
-                return;
-            }
+            // Fetch live layout directly from network stream
+            fetch(API_URL, {
+                method: "GET",
+                headers: { "X-Bin-Meta": "false" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                let savedCodes = data.codes;
+                let savedRoles = data.roles;
 
-            let foundFriendKey = Object.keys(savedCodes).find(key => savedCodes[key] === userCode);
+                let foundFriendKey = Object.keys(savedCodes).find(key => savedCodes[key] === userCode);
 
-            if (foundFriendKey) {
-                let realRole = savedRoles[foundFriendKey];
-                document.getElementById("screen-home").classList.add("hidden");
-                document.getElementById("screen-joiner").classList.remove("hidden");
-                document.getElementById("my-role-text").textContent = realRole;
-            } else {
-                alert("Invalid 3-digit code! Please check Phone 1's screen.");
-            }
+                if (foundFriendKey) {
+                    document.getElementById("screen-home").classList.add("hidden");
+                    document.getElementById("screen-joiner").classList.remove("hidden");
+                    document.getElementById("my-role-text").textContent = savedRoles[foundFriendKey];
+                } else {
+                    alert("Wrong code! Make sure Phone 1 generated it.");
+                }
+            })
+            .catch(() => alert("Could not connect to game server."));
         }
 
         function startRamaGuessing() {
