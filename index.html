@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rama Seetha QR Game</title>
+    <!-- Core JavaScript local builder library fallback -->
+    <script src="https://unpkg.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; text-align: center; padding: 15px; background: #f4f7f6; margin: 0; }
         .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
@@ -11,8 +13,11 @@
         button { background: #ff9800; color: white; border: none; padding: 14px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; box-sizing: border-box; }
         button:hover { background: #e65100; }
         select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; }
-        .qr-container { display: inline-block; padding: 10px; background: white; border: 2px dashed #ff9800; margin: 15px 0; border-radius: 8px; min-height: 220px; }
-        .qr-container img { display: block; width: 220px; height: 220px; }
+        .qr-container { display: inline-block; padding: 15px; background: white; border: 2px dashed #ff9800; margin: 15px 0; border-radius: 8px; min-height: 200px; }
+        .qr-container table { border-width: 0px; border-style: none; border-collapse: collapse; padding: 0; margin: 0; }
+        .qr-container td { border-width: 0px; border-style: none; border-collapse: collapse; padding: 0; margin: 0; width: 4px; height: 4px; }
+        .qr-container td.dark { background-color: #000000; }
+        .qr-container td.light { background-color: #ffffff; }
         .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; letter-spacing: 1px; }
         .hidden { display: none; }
         .assignment-list { text-align: left; background: #fff3e0; padding: 15px; border-radius: 8px; font-size: 16px; }
@@ -35,9 +40,8 @@
         <hr style="border: 0; border-top: 1px solid #eee;">
         <h3 id="qr-title">Chit for Friend 1</h3>
         
-        <div class="qr-container">
-            <img id="qr-image" src="" alt="QR Code Game Link">
-        </div>
+        <!-- Rendered completely locally on phone canvas -->
+        <div id="qrcode-target" class="qr-container"></div>
         
         <button onclick="nextQR()" id="next-qr-btn">Show Next Friend's QR</button>
         <button onclick="startRamaGuessing()" id="rama-start-btn" class="hidden" style="background:#e65100;">All Scanned! Start Guessing</button>
@@ -116,12 +120,17 @@
             document.getElementById("qr-title").textContent = "👉 Friend " + friendNum + ", Scan This!";
             
             let secretRole = assignedRoles["Friend " + friendNum];
-            let baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
-            let targetUrl = baseUrl + "?role=" + encodeURIComponent(secretRole);
+            let currentUrl = window.location.href.split('?')[0]; 
+            let targetUrl = currentUrl + "?role=" + encodeURIComponent(secretRole);
 
-            // CHANGED: Fixed QuickChart routing replacement link string
-            let qrApiUrl = "https://quickchart.io" + encodeURIComponent(targetUrl);
-            document.getElementById("qr-image").src = qrApiUrl;
+            // Generate layout locally with script parameters without network requests
+            let typeNumber = 0;
+            let errorCorrectionLevel = 'L';
+            let qr = qrcode(typeNumber, errorCorrectionLevel);
+            qr.addData(targetUrl);
+            qr.make();
+            
+            document.getElementById("qrcode-target").innerHTML = qr.createTableTag(4, 0);
         }
 
         function nextQR() {
