@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rama Seetha QR Game</title>
-    <!-- FIXED: Secured HTTPS library for QR generation -->
-    <script src="https://cloudflare.com" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 15px; background: #f4f7f6; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
-        h2 { color: #d32f2f; }
-        button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 90%; font-weight: bold; margin: 8px 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; text-align: center; padding: 15px; background: #f4f7f6; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
+        h2 { color: #d32f2f; margin-top: 0; }
+        button { background: #ff9800; color: white; border: none; padding: 14px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; box-sizing: border-box; }
         button:hover { background: #e65100; }
-        select { padding: 12px; font-size: 16px; width: 90%; margin: 10px 0; }
-        .qr-container { display: inline-block; padding: 10px; background: white; border: 1px solid #ccc; margin: 15px 0; min-height: 200px; min-width: 200px; }
-        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 15px 0; }
+        select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; }
+        .qr-container { display: inline-block; padding: 10px; background: white; border: 2px dashed #ff9800; margin: 15px 0; border-radius: 8px; }
+        .qr-container img { display: block; width: 220px; height: 220px; }
+        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; letter-spacing: 1px; }
         .hidden { display: none; }
+        .assignment-list { text-align: left; background: #fff3e0; padding: 15px; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -24,17 +24,22 @@
     <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
         <p>Choose your phone's role for this round:</p>
-        <button onclick="startAsDealer()" style="background: #4caf50;">I am Phone 1 (Dealer)</button>
+        <button onclick="startAsDealer()" style="background: #4caf50;">I am Phone 1 (Dealer / Rama)</button>
         <button onclick="startAsJoiner()">I am Phone 2, 3, or 4</button>
     </div>
 
     <!-- SCREEN 2: DEALER GENERATES ROLES -->
     <div id="screen-dealer" class="card hidden">
         <h2>🏹 Dealer Dashboard</h2>
-        <p>Show these QR codes to your friends one by one. They must open the link on their phones!</p>
-        <hr>
+        <p>Show these QR codes to your friends one by one. They must scan it with their phone camera!</p>
+        <hr style="border: 0; border-top: 1px solid #eee;">
         <h3 id="qr-title">Chit for Friend 1</h3>
-        <div id="qrcode" class="qr-container"></div>
+        
+        <!-- FIXED: Native image tag prevents blank boxes -->
+        <div class="qr-container">
+            <img id="qr-image" src="" alt="QR Code Game Link">
+        </div>
+        
         <button onclick="nextQR()" id="next-qr-btn">Show Next Friend's QR</button>
         <button onclick="startRamaGuessing()" id="rama-start-btn" class="hidden" style="background:#e65100;">All Scanned! Start Guessing</button>
     </div>
@@ -44,30 +49,34 @@
         <h2>🤫 Your Secret Chit</h2>
         <p>Your assigned identity is:</p>
         <div id="my-role-text" class="role-box"></div>
-        <p>Keep this screen open so Rama can inspect you!</p>
+        <p style="color: #666;">Keep this screen open so Rama can inspect your face!</p>
     </div>
 
     <!-- SCREEN 4: RAMA GUESSING -->
     <div id="screen-rama" class="card hidden">
         <h2>🏹 You are RAMA!</h2>
-        <p>Look at your 3 friends' screens. Choose who you think has the <strong>Sita</strong> chit:</p>
+        <p>Look at your 3 friends. Choose who you think has the secret <strong>Sita</strong> chit:</p>
         <select id="guess-select">
             <option value="Friend 1">Friend 1</option>
             <option value="Friend 2">Friend 2</option>
             <option value="Friend 3">Friend 3</option>
         </select>
-        <button onclick="revealWinner()">Submit Guess</button>
+        <button onclick="revealWinner()">Submit Final Guess</button>
     </div>
 
     <!-- SCREEN 5: GAME OVER -->
     <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
-        <div id="result-text" style="font-size: 18px; font-weight: bold; margin-bottom: 15px;"></div>
-        <p><strong>Actual Secret Assignments:</strong></p>
-        <p>• Friend 1: <span id="r-f1"></span></p>
-        <p>• Friend 2: <span id="r-f2"></span></p>
-        <p>• Friend 3: <span id="r-f3"></span></p>
-        <button onclick="location.href=window.location.pathname" style="background: #4caf50;">Play Again 🔄</button>
+        <div id="result-text" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;"></div>
+        
+        <div class="assignment-list">
+            <strong>Actual Secret Assignments:</strong><br><br>
+            • Friend 1: <span id="r-f1" style="font-weight: bold;"></span><br>
+            • Friend 2: <span id="r-f2" style="font-weight: bold;"></span><br>
+            • Friend 3: <span id="r-f3" style="font-weight: bold;"></span>
+        </div>
+        
+        <button onclick="resetGame()" style="background: #4caf50;">Play Again 🔄</button>
     </div>
 
     <script>
@@ -75,6 +84,7 @@
         let assignedRoles = {};
         let currentQRIndex = 1;
 
+        // Automatically detect if a player scanned the QR code link
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('role')) {
@@ -86,6 +96,7 @@
         };
 
         function startAsDealer() {
+            // Shuffle roles completely using Fisher-Yates shuffle
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
@@ -101,25 +112,19 @@
         }
 
         function startAsJoiner() {
-            alert("Please use your phone's camera to scan the QR code displayed on Phone 1!");
+            alert("Open your phone's normal Camera App and scan the QR code displayed on Phone 1!");
         }
 
         function generateQR(friendNum) {
-            document.getElementById("qrcode").innerHTML = ""; 
             document.getElementById("qr-title").textContent = "👉 Friend " + friendNum + ", Scan This!";
             
             let secretRole = assignedRoles["Friend " + friendNum];
             let baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
             let targetUrl = baseUrl + "?role=" + encodeURIComponent(secretRole);
 
-            // Correct implementation fallback
-            setTimeout(() => {
-                new QRCode(document.getElementById("qrcode"), {
-                    text: targetUrl,
-                    width: 200,
-                    height: 200
-                });
-            }, 100);
+            // Generate clean QR code directly into image source natively via cloud API
+            let qrApiUrl = "https://googleapis.com" + encodeURIComponent(targetUrl);
+            document.getElementById("qr-image").src = qrApiUrl;
         }
 
         function nextQR() {
@@ -147,14 +152,19 @@
 
             let resBox = document.getElementById("result-text");
             if (guess === actualSitaFriend) {
-                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita on ${guess}! You win 1000 points!`;
+                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita on ${guess}! <br>Rama wins 1000 points!`;
             } else {
-                resBox.innerHTML = `😢 <span style="color:red;">Wrong!</span> You guessed ${guess}, but Sita was actually hidden on ${actualSitaFriend}!`;
+                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked ${guess}, but Sita was actually hidden on ${actualSitaFriend}!`;
             }
 
             document.getElementById("r-f1").textContent = assignedRoles["Friend 1"];
             document.getElementById("r-f2").textContent = assignedRoles["Friend 2"];
             document.getElementById("r-f3").textContent = assignedRoles["Friend 3"];
+        }
+
+        function resetGame() {
+            // Direct clean reload to drop old link memory strings safely
+            location.href = window.location.pathname;
         }
     </script>
 </body>
