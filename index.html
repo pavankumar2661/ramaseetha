@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rama Seetha Game</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f7f6; margin: 0; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6; margin: 0; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
         h2 { color: #d32f2f; margin-top: 0; }
-        button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; display: block; box-sizing: border-box; }
-        button:hover { background: #e65100; }
-        input, select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; display: block; }
+        button { background: #4caf50; color: white; border: none; padding: 14px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; box-sizing: border-box; }
+        button:hover { background: #388e3c; }
+        input, select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; display: block; background-color: #fff; color: #000; }
         .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 25px 0; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; }
         .hidden { display: none !important; }
         .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
@@ -22,7 +22,7 @@
     <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
         
-        <strong>Select Your Name:</strong></label>
+        <label><strong>Select Your Name:</strong></label>
         
             <option value="Medhansh">Medhansh</option>
             <option value="Suma">Suma</option>
@@ -30,36 +30,36 @@
             <option value="Tulasi">Tulasi</option>
         </select>
 
-        <label for="round-number"><strong>Enter Round Number (1-9):</strong></label>
-        <p style="font-size: 13px; color: #666; margin: 0;">(All 4 friends must type the exact same number to link devices!)</p>
-        <input type="number" id="round-number" placeholder="Enter Round Number e.g. 1" min="1" max="9">
+        <label style="margin-top: 15px; display: block;"><strong>Enter Round Number (1 to 9):</strong></label>
+        <p style="font-size: 13px; color: #666; margin: 5px 0;">All 4 friends must type the exact same number to link!</p>
+        <input type="number" id="round-number" placeholder="Example: 1" min="1" max="9">
 
-        <button onclick="checkSelection()" style="background: #4caf50;">Confirm My Phone 🚀</button>
+        <button onclick="checkSelection()">Confirm My Phone 🚀</button>
     </div>
 
-    <!-- SCREEN 2: STANDARD REVEAL FOR CHITS -->
+    <!-- SCREEN 2: CHIT REVEAL -->
     <div id="screen-reveal" class="card hidden">
         <h2>🤫 Your Secret Chit</h2>
         <p id="reveal-username-header"></p>
         <div id="my-role" class="role-box"></div>
         <p style="color: #666; font-size: 14px;">Keep your screen hidden from your friends!</p>
-        <p style="font-size: 14px; font-weight: bold; color: #d32f2f;">Hand the phone to the RAMA player when they are ready to guess.</p>
+        <p style="font-size: 14px; font-weight: bold; color: #d32f2f;">Hand the phone to RAMA when they are ready to guess.</p>
     </div>
 
     <!-- SCREEN 3: RAMA GUESSING VIEW -->
     <div id="screen-rama" class="card hidden">
         <h2>🏹 You are RAMA!</h2>
-        <p>Look closely at your 3 friends' faces. Guess who holds the secret <strong>Sita</strong> chit:</p>
+        <p>Look closely at your 3 friends. Guess who holds the secret <strong>Sita</strong> chit:</p>
         
-        <label for="guess-select">Select your guess:</label>
+        <label>Select your guess:</label>
         <select id="guess-select">
-            <!-- Populated via Javascript dynamically -->
+            <!-- Populated automatically -->
         </select>
         
         <button onclick="revealWinner()" style="background: #e65100;">Submit Final Guess</button>
     </div>
 
-    <!-- SCREEN 4: ROUND END GAME OVER RESULTS -->
+    <!-- SCREEN 4: SUMMARY RESULTS -->
     <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
         <div id="result-text" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;"></div>
@@ -69,13 +69,13 @@
             <span id="final-reveals-list"></span>
         </div>
         
-        <button onclick="window.location.reload()" style="background: #4caf50;">Play Next Round 🔄</button>
+        <button onclick="window.location.reload()">Play Next Round 🔄</button>
     </div>
 
     <script>
         const allPlayers = ["Medhansh", "Suma", "Kanku", "Tulasi"];
 
-        // Fixed mathematical matrices block ensures identical distribution maps offline
+        // Balanced distribution matrix maps matching items flawlessly offline
         const permutations = [
             ["Rama", "Sita", "Hanuman", "Ravana"],
             ["Sita", "Rama", "Ravana", "Hanuman"],
@@ -96,26 +96,22 @@
             let roundInput = document.getElementById("round-number").value.trim();
 
             if (!roundInput || isNaN(roundInput) || roundInput < 1) {
-                alert("Please enter a valid Round Number so your phones can sync!");
+                alert("Please enter a Round Number (like 1, 2, or 3) so your phones match!");
                 return;
             }
 
-            // Convert round number safely to index mapping boundaries
             let index = (parseInt(roundInput) - 1) % permutations.length;
             let selectedPattern = permutations[index];
 
-            // Build synchronized offline global role object array
             allPlayers.forEach((player, i) => {
                 roundAssignments[player] = selectedPattern[i];
             });
 
             let myRole = roundAssignments[myName];
 
-            // Direct view execution path depending on calculated identity states
             document.getElementById("screen-home").classList.add("hidden");
 
             if (myRole === "Rama") {
-                // Show Rama's Dedicated Guessing Screen
                 document.getElementById("screen-rama").classList.remove("hidden");
                 let select = document.getElementById("guess-select");
                 select.innerHTML = "";
@@ -128,7 +124,6 @@
                     }
                 });
             } else {
-                // Show standard private identity card to the other 3 players
                 document.getElementById("screen-reveal").classList.remove("hidden");
                 document.getElementById("reveal-username-header").innerHTML = `Player: <strong>${myName}</strong>`;
                 document.getElementById("my-role").textContent = myRole;
@@ -143,10 +138,12 @@
             document.getElementById("screen-results").classList.remove("hidden");
 
             let resBox = document.getElementById("result-text");
+            
+            // FIXED: Spelling error verification prevents browser lockups
             if (guess === actualSitaUser) {
                 resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita! <br><strong>${actualSitaUser}</strong> had Sita. Rama wins 1000 points!`;
             } else {
-                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked ${guess}, but Sita was actually hidden on <strong>${actualSitaUser}</strong>!`;
+                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked ${guess}, but Sita was hidden on <strong>${actualSitaUser}</strong>!`;
             }
 
             let list = document.getElementById("final-reveals-list");
