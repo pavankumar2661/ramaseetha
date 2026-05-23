@@ -11,7 +11,7 @@
         button { background: #ff9800; color: white; border: none; padding: 14px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; box-sizing: border-box; }
         button:hover { background: #e65100; }
         select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; }
-        .qr-container { display: inline-block; padding: 10px; background: white; border: 2px dashed #ff9800; margin: 15px 0; border-radius: 8px; }
+        .qr-container { display: inline-block; padding: 10px; background: white; border: 2px dashed #ff9800; margin: 15px 0; border-radius: 8px; min-height: 220px; }
         .qr-container img { display: block; width: 220px; height: 220px; }
         .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; letter-spacing: 1px; }
         .hidden { display: none; }
@@ -35,7 +35,6 @@
         <hr style="border: 0; border-top: 1px solid #eee;">
         <h3 id="qr-title">Chit for Friend 1</h3>
         
-        <!-- FIXED: Native image tag prevents blank boxes -->
         <div class="qr-container">
             <img id="qr-image" src="" alt="QR Code Game Link">
         </div>
@@ -84,7 +83,6 @@
         let assignedRoles = {};
         let currentQRIndex = 1;
 
-        // Automatically detect if a player scanned the QR code link
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('role')) {
@@ -96,14 +94,13 @@
         };
 
         function startAsDealer() {
-            // Shuffle roles completely using Fisher-Yates shuffle
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
             }
-            assignedRoles["Friend 1"] = roles[0];
-            assignedRoles["Friend 2"] = roles[1];
-            assignedRoles["Friend 3"] = roles[2];
+            assignedRoles["Friend 1"] = roles;
+            assignedRoles["Friend 2"] = roles;
+            assignedRoles["Friend 3"] = roles;
 
             document.getElementById("screen-home").classList.add("hidden");
             document.getElementById("screen-dealer").classList.remove("hidden");
@@ -122,8 +119,8 @@
             let baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
             let targetUrl = baseUrl + "?role=" + encodeURIComponent(secretRole);
 
-            // Generate clean QR code directly into image source natively via cloud API
-            let qrApiUrl = "https://googleapis.com" + encodeURIComponent(targetUrl);
+            // CHANGED: Fixed QuickChart routing replacement link string
+            let qrApiUrl = "https://quickchart.io" + encodeURIComponent(targetUrl);
             document.getElementById("qr-image").src = qrApiUrl;
         }
 
@@ -163,7 +160,6 @@
         }
 
         function resetGame() {
-            // Direct clean reload to drop old link memory strings safely
             location.href = window.location.pathname;
         }
     </script>
