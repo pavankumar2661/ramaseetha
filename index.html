@@ -3,218 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rama Seetha Party Game</title>
+    <title>Rama Seetha QR Game</title>
+    <!-- Script to generate QR codes automatically -->
+    <script src="https://cloudflare.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; padding: 15px; background-color: #f0f2f5; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-width: 420px; margin: 20px auto; }
-        h2 { color: #d32f2f; margin-top: 0; }
-        input, select { padding: 12px; font-size: 16px; width: 90%; border-radius: 8px; margin: 8px 0; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background: #ff9800; color: white; border: none; padding: 14px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 12px; width: 90%; font-weight: bold; transition: 0.2s; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 15px; background: #f4f7f6; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
+        h2 { color: #d32f2f; }
+        button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 90%; font-weight: bold; margin: 8px 0; }
         button:hover { background: #e65100; }
-        .setup-list { text-align: left; padding: 0 20px; font-size: 16px; }
-        .secret-role { font-size: 28px; font-weight: bold; color: #1976d2; margin: 20px 0; }
-        .scoreboard { background: #fff3e0; padding: 12px; border-radius: 8px; margin-top: 15px; text-align: left; }
+        select { padding: 12px; font-size: 16px; width: 90%; margin: 10px 0; }
+        .qr-container { display: inline-block; padding: 10px; background: white; border: 1px solid #ccc; margin: 15px 0; }
+        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 15px 0; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN 1: PLAYER SETUP -->
-    <div id="screen-setup" class="card">
-        <h2>🏹 Game Setup</h2>
-        <p>Enter names of exactly 4 players to begin:</p>
-        <input type="text" id="player-input" placeholder="Enter player name...">
-        <button onclick="addPlayer()">Add Player</button>
-        <div class="setup-list">
-            <p><strong>Players Joined:</strong></p>
-            <ol id="player-list"></ol>
-        </div>
-        <button id="start-btn" onclick="startDistribution()" class="hidden" style="background: #4caf50;">Start Game 🚀</button>
+    <!-- SCREEN 1: CHOOSE MODE -->
+    <div id="screen-home" class="card">
+        <h2>✨ Rama Seetha Game ✨</h2>
+        <p>Choose your phone's role for this round:</p>
+        <button onclick="startAsDealer()" style="background: #4caf50;">I am Phone 1 (Dealer)</button>
+        <button onclick="startAsJoiner()">I am Phone 2, 3, or 4</button>
     </div>
 
-    <!-- SCREEN 2: SECRET CHIT DISTRIBUTION -->
-    <div id="screen-chits" class="card hidden">
-        <h2>🤫 Secret Chit Draw</h2>
-        <p id="pass-instruction">Pass the phone to:</p>
-        <h3 id="current-player-name" style="color:#d32f2f; font-size: 24px;"></h3>
-        
-        <div id="hide-box">
-            <button onclick="revealSecret()" style="background:#0288d1;">Tap to See Your Chit</button>
-        </div>
-        
-        <div id="show-box" class="hidden">
-            <p>Your secret role is:</p>
-            <div id="role-text" class="secret-role"></div>
-            <p style="color: #666; font-size: 14px;">Keep it secret! Memorise it, then tap below.</p>
-            <button onclick="nextPlayerChit()" style="background:#4caf50;">Next Player Done</button>
-        </div>
+    <!-- SCREEN 2: DEALER GENERATES ROLES -->
+    <div id="screen-dealer" class="card hidden">
+        <h2>🏹 Dealer Dashboard</h2>
+        <p>Show these QR codes to your friends one by one. They must open the link on their phones!</p>
+        <hr>
+        <h3 id="qr-title">Chit for Friend 1</h3>
+        <div id="qrcode" class="qr-container"></div>
+        <button onclick="nextQR()" id="next-qr-btn">Show Next Friend's QR</button>
+        <button onclick="startRamaGuessing()" id="rama-start-btn" class="hidden" style="background:#e65100;">All Scanned! Start Guessing</button>
     </div>
 
-    <!-- SCREEN 3: RAMA GUESSING -->
-    <div id="screen-guessing" class="card hidden">
-        <h2>🎯 Rama's Turn</h2>
-        <p id="rama-announcement"></p>
-        <p>Your mission is to find who holds the <strong>Sita</strong> chit!</p>
-        
-        <label for="guess-dropdown">Select your guess:</label>
-        <select id="guess-dropdown"></select>
-        
-        <button onclick="submitGuess()" style="background: #e65100;">Confirm Final Guess</button>
+    <!-- SCREEN 3: JOINER SHOWING ROLE -->
+    <div id="screen-joiner" class="card hidden">
+        <h2>🤫 Your Secret Chit</h2>
+        <p>Your assigned identity is:</p>
+        <div id="my-role-text" class="role-box"></div>
+        <p>Keep this screen open so Rama can inspect you!</p>
     </div>
 
-    <!-- SCREEN 4: RESULTS & SCOREBOARD -->
+    <!-- SCREEN 4: RAMA GUESSING -->
+    <div id="screen-rama" class="card hidden">
+        <h2>🏹 You are RAMA!</h2>
+        <p>Look at your 3 friends' screens. Choose who you think has the <strong>Sita</strong> chit:</p>
+        <select id="guess-select">
+            <option value="Friend 1">Friend 1</option>
+            <option value="Friend 2">Friend 2</option>
+            <option value="Friend 3">Friend 3</option>
+        </select>
+        <button onclick="revealWinner()">Submit Guess</button>
+    </div>
+
+    <!-- SCREEN 5: GAME OVER -->
     <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
-        <div id="result-message" style="font-size: 18px; margin-bottom: 15px; font-weight: bold;"></div>
-        
-        <div id="reveal-all" style="text-align: left; margin: 15px 0; font-size: 16px;"></div>
-        
-        <div class="scoreboard">
-            <strong>📊 Total Scoreboard:</strong>
-            <ul id="score-display" style="padding-left: 20px; margin: 8px 0;"></ul>
-        </div>
-        
-        <button onclick="startNextRound()" style="background: #4caf50;">Play Next Round 🔄</button>
+        <div id="result-text" style="font-size: 18px; font-weight: bold; margin-bottom: 15px;"></div>
+        <p><strong>Actual Secret Assignments:</strong></p>
+        <p>• Friend 1: <span id="r-f1"></span></p>
+        <p>• Friend 2: <span id="r-f2"></span></p>
+        <p>• Friend 3: <span id="r-f3"></span></p>
+        <button onclick="location.href=window.location.pathname" style="background: #4caf50;">Play Again 🔄</button>
     </div>
 
     <script>
-        let players = [];
-        let scores = {};
-        let chits = ["Rama", "Sita", "Hanuman", "Ravana"];
-        let assignments = {};
-        let currentDrawIndex = 0;
+        let roles = ["Sita", "Hanuman", "Ravana"];
+        let assignedRoles = {};
+        let currentQRIndex = 1;
 
-        function addPlayer() {
-            let input = document.getElementById("player-input");
-            let name = input.value.trim();
-            if (name && players.length < 4 && !players.includes(name)) {
-                players.push(name);
-                scores[name] = 0;
-                let li = document.createElement("li");
-                li.textContent = name;
-                document.getElementById("player-list").appendChild(li);
-                input.value = "";
+        // Auto-detect if this phone opened a secret QR link
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('role')) {
+                let secretRole = urlParams.get('role');
+                document.getElementById("screen-home").classList.add("hidden");
+                document.getElementById("screen-joiner").classList.remove("hidden");
+                document.getElementById("my-role-text").textContent = secretRole;
             }
-            if (players.length === 4) {
-                document.getElementById("start-btn").classList.remove("hidden");
-                input.disabled = true;
-            }
-        }
+        };
 
-        function startDistribution() {
-            document.getElementById("screen-setup").classList.add("hidden");
-            document.getElementById("screen-chits").classList.remove("hidden");
-            
-            // Shuffle Roles
-            for (let i = chits.length - 1; i > 0; i--) {
+        function startAsDealer() {
+            // Shuffle roles randomly for Friend 1, 2, and 3. Phone 1 is always Rama.
+            for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [chits[i], chits[j]] = [chits[j], chits[i]];
+                [roles[i], roles[j]] = [roles[j], roles[i]];
             }
-            
-            players.forEach((player, idx) => {
-                assignments[player] = chits[idx];
-            });
+            assignedRoles["Friend 1"] = roles[0];
+            assignedRoles["Friend 2"] = roles[1];
+            assignedRoles["Friend 3"] = roles[2];
 
-            currentDrawIndex = 0;
-            showChitScreenForPlayer();
+            document.getElementById("screen-home").classList.add("hidden");
+            document.getElementById("screen-dealer").classList.remove("hidden");
+            
+            generateQR(1);
         }
 
-        function showChitScreenForPlayer() {
-            document.getElementById("pass-instruction").textContent = "Pass the phone to:";
-            document.getElementById("current-player-name").textContent = players[currentDrawIndex];
-            document.getElementById("hide-box").classList.remove("hidden");
-            document.getElementById("show-box").classList.add("hidden");
+        function startAsJoiner() {
+            alert("Please use your phone's camera to scan the QR code displayed on Phone 1!");
         }
 
-        function revealSecret() {
-            let currentPlayer = players[currentDrawIndex];
-            document.getElementById("role-text").textContent = assignments[currentPlayer];
-            document.getElementById("hide-box").classList.add("hidden");
-            document.getElementById("show-box").classList.remove("hidden");
-        }
+        function generateQR(friendNum) {
+            document.getElementById("qrcode").innerHTML = ""; // Clear old QR
+            document.getElementById("qr-title").textContent = "👉 Friend " + friendNum + ", Scan This!";
+            
+            // Build a link pointing back to your site containing their secret parameter
+            let secretRole = assignedRoles["Friend " + friendNum];
+            let baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+            let targetUrl = baseUrl + "?role=" + encodeURIComponent(secretRole);
 
-        function nextPlayerChit() {
-            currentDrawIndex++;
-            if (currentDrawIndex < 4) {
-                showChitScreenForPlayer();
-            } else {
-                goToGuessingScreen();
-            }
-        }
-
-        function goToGuessingScreen() {
-            document.getElementById("screen-chits").classList.add("hidden");
-            document.getElementById("screen-guessing").classList.remove("hidden");
-            
-            let rama = Object.keys(assignments).find(key => assignments[key] === "Rama");
-            document.getElementById("rama-announcement").innerHTML = `📢 Phone belongs to: <strong>${rama} (RAMA)</strong>`;
-            
-            let dropdown = document.getElementById("guess-dropdown");
-            dropdown.innerHTML = "";
-            
-            players.forEach(p => {
-                if (p !== rama) {
-                    let opt = document.createElement("option");
-                    opt.value = p;
-                    opt.textContent = p;
-                    dropdown.appendChild(opt);
-                }
+            new QRCode(document.getElementById("qrcode"), {
+                text: targetUrl,
+                width: 200,
+                height: 200
             });
         }
 
-        function submitGuess() {
-            document.getElementById("screen-guessing").classList.add("hidden");
+        function nextQR() {
+            currentQRIndex++;
+            if (currentQRIndex <= 3) {
+                generateQR(currentQRIndex);
+            }
+            if (currentQRIndex === 3) {
+                document.getElementById("next-qr-btn").classList.add("hidden");
+                document.getElementById("rama-start-btn").classList.remove("hidden");
+            }
+        }
+
+        function startRamaGuessing() {
+            document.getElementById("screen-dealer").classList.add("hidden");
+            document.getElementById("screen-rama").classList.remove("hidden");
+        }
+
+        function revealWinner() {
+            let guess = document.getElementById("guess-select").value;
+            let actualSitaFriend = Object.keys(assignedRoles).find(key => assignedRoles[key] === "Sita");
+
+            document.getElementById("screen-rama").classList.add("hidden");
             document.getElementById("screen-results").classList.remove("hidden");
-            
-            let rama = Object.keys(assignments).find(key => assignments[key] === "Rama");
-            let sita = Object.keys(assignments).find(key => assignments[key] === "Sita");
-            let hanuman = Object.keys(assignments).find(key => assignments[key] === "Hanuman");
-            let ravana = Object.keys(assignments).find(key => assignments[key] === "Ravana");
-            
-            let guess = document.getElementById("guess-dropdown").value;
-            let msgBox = document.getElementById("result-message");
-            
-            // Calculate Scores
-            scores[hanuman] += 900;
-            scores[ravana] -= 500;
-            
-            if (guess === sita) {
-                scores[rama] += 1000;
-                scores[sita] += 0;
-                msgBox.innerHTML = `🎉 Success! ${rama} found Sita! <br><span style="color:green;">+1000 Points to Rama!</span>`;
+
+            let resBox = document.getElementById("result-text");
+            if (guess === actualSitaFriend) {
+                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita on ${guess}! You win 1000 points!`;
             } else {
-                scores[rama] += 0;
-                scores[sita] += 1000;
-                msgBox.innerHTML = `😢 Failed! ${guess} was NOT Sita. <br><span style="color:red;">Sita (${sita}) steals the 1000 Points!</span>`;
+                resBox.innerHTML = `😢 <span style="color:red;">Wrong!</span> You guessed ${guess}, but Sita was actually hidden on ${actualSitaFriend}!`;
             }
-            
-            // Reveal text
-            let revealAll = document.getElementById("reveal-all");
-            revealAll.innerHTML = `
-                <strong>Actual Roles:</strong><br>
-                • 🏹 Rama: ${rama}<br>
-                • 🌸 Sita: ${sita}<br>
-                • 🐵 Hanuman: ${hanuman} (+900)<br>
-                • 👹 Ravana: ${ravana} (-500)
-            `;
-            
-            updateScoreboard();
-        }
 
-        function updateScoreboard() {
-            let ul = document.getElementById("score-display");
-            ul.innerHTML = "";
-            for (let [player, score] of Object.entries(scores)) {
-                let li = document.createElement("li");
-                li.innerHTML = `<strong>${player}</strong>: ${score} pts`;
-                ul.appendChild(li);
-            }
-        }
-
-        function startNextRound() {
-            document.getElementById("screen-results").classList.add("hidden");
-            document.getElementById("screen-chits").classList.remove("hidden");
-            startDistribution();
+            // Reveal all roles on Rama's screen
+            document.getElementById("r-f1").textContent = assignedRoles["Friend 1"];
+            document.getElementById("r-f2").textContent = assignedRoles["Friend 2"];
+            document.getElementById("r-f3").textContent = assignedRoles["Friend 3"];
         }
     </script>
 </body>
