@@ -1,42 +1,77 @@
-# --- Save this cell inside a Jupyter Notebook (.ipynb) ---
-import random
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rama Seetha Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        button { background: #ff9800; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 25px; cursor: pointer; margin-top: 15px; width: 100%; font-weight: bold; }
+        button:hover { background: #e65100; }
+        select { padding: 10px; font-size: 16px; width: 100%; border-radius: 5px; margin: 15px 0; border: 1px solid #ccc; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; font-size: 18px; display: none; text-align: left; }
+        .win { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .lose { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
 
-def play_game():
-    print("✨ Welcome to the Rama Seetha Guessing Game! ✨\n")
-    players = ["Player 1", "Player 2", "Player 3", "Player 4"]
-    chits = ["Rama", "Sita", "Hanuman", "Ravana"]
-    
-    # Shuffle and assign roles
-    random.shuffle(chits)
-    assignments = dict(zip(players, chits))
-    
-    # Identify who is Rama
-    rama_player = [k for k, v in assignments.items() if v == "Rama"][0]
-    print(f"👉 You have been assigned the role of: **RAMA** ({rama_player})")
-    print("Your mission: Find who holds the 'Sita' chit!\n")
-    
-    # Display options (excluding Rama)
-    suspects = [p for p in players if p != rama_player]
-    print(f"The other players are: {', '.join(suspects)}")
-    
-    # Take player input
-    guess = input(f"Who do you think has Sita? ({', '.join(suspects)}): ").strip()
-    
-    if guess not in suspects:
-        print("❌ Invalid player choice!")
-        return
-
-    # Reveal results
-    actual_sita = [k for k, v in assignments.items() if v == "Sita"][0]
-    print("\n--- REVEAL ---")
-    for player, role in assignments.items():
-        print(f"• {player}: {role}")
+    <div class="card">
+        <h2>✨ Rama Seetha Game ✨</h2>
+        <p>You have been assigned the role of: <strong>RAMA</strong> 🏹</p>
+        <p><strong>Your Mission:</strong> Guess who holds the secret "Sita" chit!</p>
         
-    print("\n--- SCORE ---")
-    if guess == actual_sita:
-        print(f"🎉 Correct! You found Sita! {rama_player} (Rama) gets 1000 points!")
-    else:
-        print(f"😢 Wrong guess! {actual_sita} (Sita) steals your 1000 points!")
+        <label for="guessSelect">Choose your suspect:</label>
+        <select id="guessSelect">
+            <option value="Player 2">Player 2</option>
+            <option value="Player 3">Player 3</option>
+            <option value="Player 4">Player 4</option>
+        </select>
+        
+        <button onclick="playGame()">Submit Guess</button>
+        
+        <div id="resultBox" class="result"></div>
+    </div>
 
-# Run the game loop
-play_game()
+    <script>
+        function playGame() {
+            const players = ["Player 2", "Player 3", "Player 4"];
+            const roles = ["Sita", "Hanuman", "Ravana"];
+            
+            // Shuffle roles for the other players
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
+            
+            const assignments = {};
+            players.forEach((player, index) => {
+                assignments[player] = roles[index];
+            });
+            
+            const userGuess = document.getElementById("guessSelect").value;
+            const actualSita = Object.keys(assignments).find(key => assignments[key] === "Sita");
+            
+            const resultBox = document.getElementById("resultBox");
+            resultBox.style.display = "block";
+            
+            // Generate Reveal Text
+            let revealText = "<strong>--- ROLES REVEALED ---</strong><br>";
+            revealText += `• You: Rama<br>`;
+            for (const [player, role] of Object.entries(assignments)) {
+                revealText += `• ${player}: ${role}<br>`;
+            }
+            
+            // Check win condition
+            if (userGuess === actualSita) {
+                resultBox.className = "result win";
+                resultBox.innerHTML = revealText + `<br>🎉 <strong>Correct!</strong> You found Sita! You get 1000 points!`;
+            } else {
+                resultBox.className = "result lose";
+                resultBox.innerHTML = revealText + `<br>😢 <strong>Wrong!</strong> ${actualSita} had Sita and stole your 1000 points!`;
+            }
+        }
+    </script>
+</body>
+</html>
