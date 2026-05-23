@@ -10,28 +10,37 @@
         h2 { color: #d32f2f; }
         button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; }
         select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; }
-        .link-box { background: #eee; padding: 15px; border-radius: 6px; font-weight: bold; word-break: break-all; font-size: 18px; border: 2px dashed #ff9800; color: #1976d2; margin: 15px 0; }
+        .link-box { background: #fff3e0; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 18px; border: 2px dashed #ff9800; color: #d32f2f; margin: 15px 0; }
+        .code-highlight { font-size: 36px; display: block; color: #1976d2; margin-top: 10px; font-family: monospace; }
         .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; }
         .hidden { display: none; }
+        .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN 1: CHOOSE MODE -->
+    <!-- SCREEN 1: CHOOSE MODE / ENTER SHORT CODE -->
     <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
-        <p>Choose your role for this round:</p>
         <button onclick="startAsDealer()" style="background: #4caf50;">I am Phone 1 (Dealer / Rama)</button>
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+        <p><strong>Other Players:</strong> Enter the 3-digit code shown on Rama's screen:</p>
+        <input type="number" id="code-input" placeholder="e.g. 101" style="padding: 12px; font-size: 18px; width: 80%; text-align: center; border-radius: 6px; border: 1px solid #ccc;">
+        <button onclick="checkShortCode()" style="background: #0288d1;">View My Secret Chit</button>
     </div>
 
     <!-- SCREEN 2: DEALER DASHBOARD -->
     <div id="screen-dealer" class="card hidden">
         <h2>🏹 Dealer Dashboard</h2>
-        <p id="link-instruction">Tell Friend 1 to open this exact text link on their phone browser:</p>
+        <p id="link-instruction"></p>
         
-        <div id="link-text-container" class="link-box"></div>
+        <div class="link-box">
+            Your Game Link: <br>
+            <span id="base-url-text" style="font-size:14px; color:#555; font-weight:normal;"></span>
+            <span id="short-code-text" class="code-highlight"></span>
+        </div>
         
-        <button onclick="nextLink()" id="next-btn">Show Next Friend's Link</button>
+        <button onclick="nextLink()" id="next-btn">Show Next Friend's Code</button>
         <button onclick="startRamaGuessing()" id="rama-btn" class="hidden" style="background:#e65100;">All Friends Ready! Start Guessing</button>
     </div>
 
@@ -40,7 +49,7 @@
         <h2>🤫 Your Secret Chit</h2>
         <p>Your assigned identity is:</p>
         <div id="my-role-text" class="role-box"></div>
-        <p>Keep this screen open so Rama can see your reaction!</p>
+        <button onclick="window.location.reload()" style="background: #666;">Back to Home</button>
     </div>
 
     <!-- SCREEN 4: RAMA GUESSING -->
@@ -59,42 +68,41 @@
     <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
         <div id="result-text" style="font-size: 18px; font-weight: bold; margin-bottom: 15px;"></div>
-        <p><strong>Actual Roles:</strong></p>
-        <p>• Friend 1: <span id="r-f1" style="font-weight:bold;"></span></p>
-        <p>• Friend 2: <span id="r-f2" style="font-weight:bold;"></span></p>
-        <p>• Friend 3: <span id="r-f3" style="font-weight:bold;"></span></p>
-        <button onclick="window.location.href=window.location.pathname" style="background: #4caf50;">Play Again 🔄</button>
+        <div class="assignment-list">
+            <strong>Actual Secret Assignments:</strong><br><br>
+            • Friend 1: <span id="r-f1" style="font-weight:bold;"></span><br>
+            • Friend 2: <span id="r-f2" style="font-weight:bold;"></span><br>
+            • Friend 3: <span id="r-f3" style="font-weight:bold;"></span>
+        </div>
+        <button onclick="window.location.reload()" style="background: #4caf50;">Play Again 🔄</button>
     </div>
 
     <script>
         let roles = ["Sita", "Hanuman", "Ravana"];
         let assignedRoles = {};
         let currentFriendIndex = 1;
-
-        // Run instantly when any phone loads the page to see if a role parameter exists
-        window.onload = function() {
-            let urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('f')) {
-                let roleCode = urlParams.get('f');
-                let realRole = "Hanuman";
-                if (roleCode === "s") realRole = "Sita";
-                if (roleCode === "r") realRole = "Ravana";
-
-                document.getElementById("screen-home").classList.add("hidden");
-                document.getElementById("screen-joiner").classList.remove("hidden");
-                document.getElementById("my-role-text").textContent = realRole;
-            }
-        };
+        
+        // Custom 3-digit short code map strings
+        let generatedCodes = { "1": "", "2": "", "3": "" };
 
         function startAsDealer() {
-            // Shuffle roles simply
+            // Shuffle roles simple
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
             }
-            assignedRoles["1"] = roles[0];
-            assignedRoles["2"] = roles[1];
-            assignedRoles["3"] = roles[2];
+            assignedRoles["1"] = roles;
+            assignedRoles["2"] = roles;
+            assignedRoles["3"] = roles;
+
+            // Generate temporary random 3 digit short codes for this round
+            generatedCodes["1"] = String(Math.floor(100 + Math.random() * 900));
+            generatedCodes["2"] = String(Math.floor(100 + Math.random() * 900));
+            generatedCodes["3"] = String(Math.floor(100 + Math.random() * 900));
+
+            // Save secret round states to localStorage so players typing on Phone 1 can read it
+            localStorage.setItem("current_game_roles", JSON.stringify(assignedRoles));
+            localStorage.setItem("current_game_codes", JSON.stringify(generatedCodes));
 
             document.getElementById("screen-home").classList.add("hidden");
             document.getElementById("screen-dealer").classList.remove("hidden");
@@ -103,15 +111,9 @@
         }
 
         function displayLink(num) {
-            document.getElementById("link-instruction").innerHTML = `📢 Tell <strong>Friend ${num}</strong> to open this short code on their phone browser:`;
-            
-            let roleLetter = "h"; // default hanuman
-            if (assignedRoles[num] === "Sita") roleLetter = "s";
-            if (assignedRoles[num] === "Ravana") roleLetter = "r";
-
-            // Creates a basic copyable url path text with zero complexity
-            let baseUrl = window.location.href.split('?')[0];
-            document.getElementById("link-text-container").textContent = baseUrl + "?f=" + roleLetter;
+            document.getElementById("link-instruction").innerHTML = `📢 Tell <strong>Friend ${num}</strong> to open your main link and type code:`;
+            document.getElementById("base-url-text").textContent = window.location.href.split('?')[0];
+            document.getElementById("short-code-text").textContent = generatedCodes[num];
         }
 
         function nextLink() {
@@ -122,6 +124,28 @@
             if (currentFriendIndex === 3) {
                 document.getElementById("next-btn").classList.add("hidden");
                 document.getElementById("rama-btn").classList.remove("hidden");
+            }
+        }
+
+        function checkShortCode() {
+            let userCode = document.getElementById("code-input").value.trim();
+            let savedCodes = JSON.parse(localStorage.getItem("current_game_codes"));
+            let savedRoles = JSON.parse(localStorage.getItem("current_game_roles"));
+
+            if (!savedCodes || !savedRoles) {
+                alert("No active game found! Phone 1 must start the game first.");
+                return;
+            }
+
+            let foundFriendKey = Object.keys(savedCodes).find(key => savedCodes[key] === userCode);
+
+            if (foundFriendKey) {
+                let realRole = savedRoles[foundFriendKey];
+                document.getElementById("screen-home").classList.add("hidden");
+                document.getElementById("screen-joiner").classList.remove("hidden");
+                document.getElementById("my-role-text").textContent = realRole;
+            } else {
+                alert("Invalid 3-digit code! Please check Phone 1's screen.");
             }
         }
 
@@ -139,7 +163,7 @@
 
             let resBox = document.getElementById("result-text");
             if (guess === actualSitaFriend) {
-                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You found Sita on Friend ${guess}! <br>Rama wins 1000 points!`;
+                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita on Friend ${guess}! <br>Rama wins 1000 points!`;
             } else {
                 resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked Friend ${guess}, but Sita was actually hidden on Friend ${actualSitaFriend}!`;
             }
