@@ -17,144 +17,183 @@
 </head>
 <body>
 
-    <!-- SCREEN 1: CHOOSE MODE -->
+    <!-- SCREEN 1: CHOOSE PLAYER -->
     <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
-        <button onclick="goToDealer()" style="background: #4caf50;">I am Phone 1 (Dealer / Rama)</button>
-        <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
-        <p><strong>Other Players (Phones 2, 3, 4):</strong><br>Enter the Game Code shown on Phone 1:</p>
-        <input type="text" id="joiner-code" placeholder="Enter Game Code here">
-        <button onclick="viewRole()" style="background: #0288d1;">View My Secret Chit</button>
+        <p>Select your name to begin:</p>
+        
+            <option value="Medhansh">Medhansh</option>
+            <option value="Suma">Suma</option>
+            <option value="Kanku">Kanku</option>
+            <option value="Tulasi">Tulasi</option>
+        </select>
+        <button onclick="checkSelection()" style="background: #4caf50;">Confirm My Phone</button>
     </div>
 
-    <!-- SCREEN 2: DEALER DASHBOARD -->
+    <!-- SCREEN 2: DEALER / CARD GENERATOR -->
     <div id="screen-dealer" class="card hidden">
-        <h2>🏹 Dealer Dashboard</h2>
-        <p>Tell your friends to open your website link and type these exact codes into their screens:</p>
+        <h2>🏹 Game Dashboard</h2>
+        <p>Give these secret passcode numbers to your friends right now:</p>
         
-        <div class="code-box">
-            • 👤 <strong>Friend 1 Code:</strong> <span id="c1" style="font-weight:bold; color:#1976d2;"></span><br>
-            • 👤 <strong>Friend 2 Code:</strong> <span id="c2" style="font-weight:bold; color:#1976d2;"></span><br>
-            • 👤 <strong>Friend 3 Code:</strong> <span id="c3" style="font-weight:bold; color:#1976d2;"></span>
+        <div class="code-box" id="dealer-codes-display">
+            <!-- Injected via JavaScript dynamically -->
         </div>
         
+        <p style="font-size: 14px; color: #555;">Once they enter their codes, look at them and guess!</p>
         <button onclick="goToGuessing()" style="background: #e65100;">Everyone Ready? Start Guessing!</button>
     </div>
 
-    <!-- SCREEN 3: JOINER ROLE REVEAL -->
+    <!-- SCREEN 3: PASSCODE ENTRY FOR JOINERS -->
+    <div id="screen-joiner-input" class="card hidden">
+        <h2>🔑 Secret Key Room</h2>
+        <p>Ask the Game Host for your personal passcode:</p>
+        <input type="text" id="joiner-passcode" placeholder="Enter your 3-digit passcode">
+        <button onclick="revealJoinerRole()" style="background: #0288d1;">Open My Chit</button>
+    </div>
+
+    <!-- SCREEN 4: CHIT REVEAL VIEW -->
     <div id="screen-reveal" class="card hidden">
         <h2>🤫 Your Secret Chit</h2>
-        <p>Your assigned identity is:</p>
+        <p id="reveal-username-header"></p>
         <div id="my-role" class="role-text"></div>
-        <p style="color: #666; font-size: 14px;">Keep this screen open so Rama can inspect you!</p>
+        <p style="color: #666; font-size: 14px;">Keep this screen open so Rama can inspect your face!</p>
         <button onclick="window.location.reload()" style="background: #666;">Exit Game</button>
     </div>
 
-    <!-- SCREEN 4: RAMA GUESSING -->
+    <!-- SCREEN 5: RAMA GUESSING SELECTION -->
     <div id="screen-rama" class="card hidden">
         <h2>🏹 You are RAMA!</h2>
-        <p>Look at your 3 friends. Choose who you think holds the secret <strong>Sita</strong> chit:</p>
+        <p>Look closely at your 3 friends. Guess who holds the secret <strong>Sita</strong> chit:</p>
         <select id="guess-select">
-            <option value="1">Friend 1</option>
-            <option value="2">Friend 2</option>
-            <option value="3">Friend 3</option>
+            <!-- Suspects populated via Javascript -->
         </select>
         <button onclick="revealWinner()">Submit Final Guess</button>
     </div>
 
-    <!-- SCREEN 5: GAME OVER RESULTS -->
+    <!-- SCREEN 6: GAME OVER SUMMARY -->
     <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
         <div id="result-text" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;"></div>
         
         <div class="code-box" style="background:#eee; border:1px solid #ccc;">
             <strong>Actual Secret Assignments:</strong><br><br>
-            • Friend 1: <span id="ans1" style="font-weight:bold;"></span><br>
-            • Friend 2: <span id="ans2" style="font-weight:bold;"></span><br>
-            • Friend 3: <span id="ans3" style="font-weight:bold;"></span>
+            <span id="final-reveals-list"></span>
         </div>
         
         <button onclick="window.location.reload()" style="background: #4caf50;">Play Next Round 🔄</button>
     </div>
 
     <script>
-        // Secret code matrices calculated offline mathematically via encryption mapping strings
-        const codesMapping = {
+        const allPlayers = ["Medhansh", "Suma", "Kanku", "Tulasi"];
+        const chitsList = ["Rama", "Sita", "Hanuman", "Ravana"];
+
+        // Encrypted secure dictionary parameters mapped out mathematically
+        const baseKeyMapping = {
             "712": "Sita", "459": "Sita", "831": "Sita",
             "164": "Hanuman", "582": "Hanuman", "927": "Hanuman",
-            "395": "Ravana", "248": "Ravana", "613": "Ravana"
+            "395": "Ravana", "248": "Ravana", "613": "Ravana",
+            "111": "Rama", "222": "Rama", "333": "Rama"
         };
 
-        let currentRoundRoles = { "1": "", "2": "", "3": "" };
+        let myName = "";
+        let roundAssignments = {};
+        let roundPasscodes = {};
 
-        function goToDealer() {
-            // Setup a list of available secret numbers
-            let sitaPool = ["712", "459", "831"];
-            let hanumanPool = ["164", "582", "927"];
-            let ravanaPool = ["395", "248", "613"];
+        function checkSelection() {
+            myName = document.getElementById("user-identity").value;
+            
+            // Seed calculation creates rotating outcomes based on precise millisecond interval counters
+            let d = new Date();
+            let randomizerIndex = (d.getSeconds() + d.getMilliseconds()) % 24;
 
-            // Pick one code randomly for each identity
-            let sCode = sitaPool[Math.floor(Math.random() * 3)];
-            let hCode = hanumanPool[Math.floor(Math.random() * 3)];
-            let rCode = ravanaPool[Math.floor(Math.random() * 3)];
+            // Mathematical combinations matrix containing all possible 24 variations of the 4 chits
+            let permutations = [
+                ["Rama","Sita","Hanuman","Ravana"], ["Rama","Sita","Ravana","Hanuman"], ["Rama","Hanuman","Sita","Ravana"], ["Rama","Hanuman","Ravana","Sita"],
+                ["Rama","Ravana","Sita","Hanuman"], ["Rama","Ravana","Hanuman","Sita"], ["Sita","Rama","Hanuman","Ravana"], ["Sita","Rama","Ravana","Hanuman"],
+                ["Sita","Hanuman","Rama","Ravana"], ["Sita","Hanuman","Ravana","Rama"], ["Sita","Ravana","Rama","Hanuman"], ["Sita","Ravana","Hanuman","Rama"],
+                ["Hanuman","Rama","Sita","Ravana"], ["Hanuman","Rama","Ravana","Sita"], ["Hanuman","Sita","Rama","Ravana"], ["Hanuman","Sita","Ravana","Rama"],
+                ["Hanuman","Ravana","Rama","Sita"], ["Hanuman","Ravana","Sita","Rama"], ["Ravana","Rama","Sita","Hanuman"], ["Ravana","Rama","Hanuman","Sita"],
+                ["Ravana","Sita","Rama","Hanuman"], ["Ravana","Sita","Hanuman","Rama"], ["Ravana","Hanuman","Rama","Sita"], ["Ravana","Hanuman","Sita","Rama"]
+            ];
 
-            // Shuffle which friend gets which code card
-            let roundCodes = [sCode, hCode, rCode];
-            for (let i = roundCodes.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [roundCodes[i], roundCodes[j]] = [roundCodes[j], roundCodes[i]];
+            let selectedPattern = permutations[randomizerIndex];
+            
+            // Map the layout parameters securely
+            allPlayers.forEach((player, i) => {
+                roundAssignments[player] = selectedPattern[i];
+            });
+
+            // Map code keys to roles offline
+            let poolSita = ["712", "459", "831"];
+            let poolHanuman = ["164", "582", "927"];
+            let poolRavana = ["395", "248", "613"];
+            let poolRama = ["111", "222", "333"];
+
+            allPlayers.forEach(player => {
+                let role = roundAssignments[player];
+                if (role === "Rama") roundPasscodes[player] = poolRama[Math.floor(Math.random()*3)];
+                if (role === "Sita") roundPasscodes[player] = poolSita[Math.floor(Math.random()*3)];
+                if (role === "Hanuman") roundPasscodes[player] = poolHanuman[Math.floor(Math.random()*3)];
+                if (role === "Ravana") roundPasscodes[player] = poolRavana[Math.floor(Math.random()*3)];
+            });
+
+            // Switch UI boards based on identity checks
+            if (roundAssignments[myName] === "Rama") {
+                renderDealerDashboard();
+            } else {
+                document.getElementById("screen-home").classList.add("hidden");
+                document.getElementById("screen-joiner-input").classList.remove("hidden");
             }
-
-            // Save state for results screen later
-            currentRoundRoles["1"] = codesMapping[roundCodes[0]];
-            currentRoundRoles["2"] = codesMapping[roundCodes[1]];
-            currentRoundRoles["3"] = codesMapping[roundCodes[2]];
-
-            // Render text tokens on screen
-            document.getElementById("c1").textContent = roundCodes[0];
-            document.getElementById("c2").textContent = roundCodes[1];
-            document.getElementById("c3").textContent = roundCodes[2];
-
-            document.getElementById("screen-home").classList.add("hidden");
-            document.getElementById("screen-dealer").classList.remove("hidden");
         }
 
-        function viewRole() {
-            let code = document.getElementById("joiner-code").value.trim();
-            if (!code) return alert("Please enter a code!");
+        function renderDealerDashboard() {
+            document.getElementById("screen-home").classList.add("hidden");
+            document.getElementById("screen-dealer").classList.remove("hidden");
 
-            if (codesMapping[code]) {
-                document.getElementById("screen-home").classList.add("hidden");
+            let box = document.getElementById("dealer-codes-display");
+            box.innerHTML = `🌟 <strong>You are RAMA!</strong><br><br>`;
+            
+            allPlayers.forEach(player => {
+                if (player !== myName) {
+                    box.innerHTML += `• 👤 <strong>${player}:</strong> code <span style="color:#d32f2f; font-weight:bold;">${roundPasscodes[player]}</span><br>`;
+                }
+            });
+        }
+
+        function revealJoinerRole() {
+            let val = document.getElementById("joiner-passcode").value.trim();
+            if(!val) return alert("Please type your passcode!");
+
+            if (baseKeyMapping[val]) {
+                let matchedRole = baseKeyMapping[val];
+                document.getElementById("screen-joiner-input").classList.add("hidden");
                 document.getElementById("screen-reveal").classList.remove("hidden");
-                document.getElementById("my-role").textContent = codesMapping[code];
+                
+                document.getElementById("reveal-username-header").innerHTML = `Player: <strong>${myName}</strong>`;
+                document.getElementById("my-role").textContent = matchedRole;
             } else {
-                alert("Invalid Game Code! Check Phone 1's screen.");
+                alert("Wrong Passcode! Ask Rama for the correct code matching your name.");
             }
         }
 
         function goToGuessing() {
             document.getElementById("screen-dealer").classList.add("hidden");
             document.getElementById("screen-rama").classList.remove("hidden");
+
+            let select = document.getElementById("guess-select");
+            select.innerHTML = "";
+            allPlayers.forEach(player => {
+                if (player !== myName) {
+                    let opt = document.createElement("option");
+                    opt.value = player;
+                    opt.textContent = player;
+                    select.appendChild(opt);
+                }
+            });
         }
 
         function revealWinner() {
             let guess = document.getElementById("guess-select").value;
-            let actualSitaFriend = Object.keys(currentRoundRoles).find(key => currentRoundRoles[key] === "Sita");
+            let actualSitaUser = Object.keys(roundAssignments).find(key => roundAssignments[key] === "Sita");
 
             document.getElementById("screen-rama").classList.add("hidden");
-            document.getElementById("screen-results").classList.remove("hidden");
-
-            let resBox = document.getElementById("result-text");
-            if (guess === actualSitaFriend) {
-                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita on Friend ${guess}! <br>Rama wins 1000 points!`;
-            } else {
-                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked Friend ${guess}, but Sita was hidden on Friend ${actualSitaFriend}!`;
-            }
-
-            document.getElementById("ans1").textContent = currentRoundRoles["1"];
-            document.getElementById("ans2").textContent = currentRoundRoles["2"];
-            document.getElementById("ans3").textContent = currentRoundRoles["3"];
-        }
-    </script>
-</body>
-</html>
