@@ -1,28 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rama Seetha Game</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6; margin: 0; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
-        h2 { color: #d32f2f; margin-top: 0; }
-        button { background: #4caf50; color: white; border: none; padding: 14px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; box-sizing: border-box; }
-        button:hover { background: #388e3c; }
-        input, select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; display: block; background-color: #fff; color: #000; }
-        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 25px 0; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; }
-        .hidden { display: none !important; }
-        .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
-    </style>
 </head>
-<body>
+<body style="font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6;">
 
     <!-- SCREEN 1: LOGIN SETUP -->
-    <div id="screen-home" class="card">
+    <div id="screen-home" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc;">
         <h2>✨ Rama Seetha Game ✨</h2>
         
-        <label><strong>Select Your Name:</strong></label>
+        <p><strong>1. Select Your Name:</strong></p>
         
             <option value="Medhansh">Medhansh</option>
             <option value="Suma">Suma</option>
@@ -30,52 +19,50 @@
             <option value="Tulasi">Tulasi</option>
         </select>
 
-        <label style="margin-top: 15px; display: block;"><strong>Enter Round Number (1 to 9):</strong></label>
-        <p style="font-size: 13px; color: #666; margin: 5px 0;">All 4 friends must type the exact same number to link!</p>
-        <input type="number" id="round-number" placeholder="Example: 1" min="1" max="9">
+        <p><strong>2. Enter Round Number (1 to 9):</strong></p>
+        <p style="font-size: 12px; color: #666; margin: 0;">All 4 phones must type the exact same number!</p>
+        <input type="number" id="round-number" placeholder="Example: 1" style="font-size: 18px; padding: 10px; width: 80%; margin-bottom: 20px;">
 
-        <button onclick="checkSelection()">Confirm My Phone 🚀</button>
+        <button onclick="checkSelection()" style="font-size: 18px; padding: 12px; width: 90%; background: green; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Confirm My Phone 🚀</button>
     </div>
 
     <!-- SCREEN 2: CHIT REVEAL -->
-    <div id="screen-reveal" class="card hidden">
+    <div id="screen-reveal" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: none;">
         <h2>🤫 Your Secret Chit</h2>
-        <p id="reveal-username-header"></p>
-        <div id="my-role" class="role-box"></div>
-        <p style="color: #666; font-size: 14px;">Keep your screen hidden from your friends!</p>
-        <p style="font-size: 14px; font-weight: bold; color: #d32f2f;">Hand the phone to RAMA when they are ready to guess.</p>
+        <h3 id="reveal-username-header"></h3>
+        <div id="my-role" style="font-size: 32px; font-weight: bold; color: blue; background: #e3f2fd; padding: 15px; margin: 20px 0; border-radius: 5px;"></div>
+        <p style="color: #666;">Keep this card hidden from your friends!</p>
+        <button onclick="window.location.reload()" style="padding: 10px; background: #666; color: white; border: none;">Exit Game</button>
     </div>
 
     <!-- SCREEN 3: RAMA GUESSING VIEW -->
-    <div id="screen-rama" class="card hidden">
+    <div id="screen-rama" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: none;">
         <h2>🏹 You are RAMA!</h2>
-        <p>Look closely at your 3 friends. Guess who holds the secret <strong>Sita</strong> chit:</p>
+        <p>Look at your 3 friends. Guess who has the <strong>Sita</strong> chit:</p>
         
-        <label>Select your guess:</label>
-        <select id="guess-select">
+        <select id="guess-select" style="font-size: 18px; padding: 10px; width: 90%; margin-bottom: 20px;">
             <!-- Populated automatically -->
         </select>
         
-        <button onclick="revealWinner()" style="background: #e65100;">Submit Final Guess</button>
+        <button onclick="revealWinner()" style="font-size: 18px; padding: 12px; width: 90%; background: red; color: white; border: none; border-radius: 5px; font-weight: bold;">Submit Final Guess</button>
     </div>
 
     <!-- SCREEN 4: SUMMARY RESULTS -->
-    <div id="screen-results" class="card hidden">
+    <div id="screen-results" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: none;">
         <h2>🏁 Round Results</h2>
-        <div id="result-text" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;"></div>
+        <h3 id="result-text"></h3>
         
-        <div class="assignment-list">
-            <strong>Actual Secret Assignments:</strong><br><br>
+        <div style="text-align: left; background: #eee; padding: 15px; border-radius: 5px;">
+            <strong>Actual Chit Locations:</strong><br><br>
             <span id="final-reveals-list"></span>
         </div>
         
-        <button onclick="window.location.reload()">Play Next Round 🔄</button>
+        <button onclick="window.location.reload()" style="font-size: 18px; padding: 12px; width: 90%; background: green; color: white; border: none; margin-top: 20px;">Play Next Round 🔄</button>
     </div>
 
     <script>
         const allPlayers = ["Medhansh", "Suma", "Kanku", "Tulasi"];
 
-        // Balanced distribution matrix maps matching items flawlessly offline
         const permutations = [
             ["Rama", "Sita", "Hanuman", "Ravana"],
             ["Sita", "Rama", "Ravana", "Hanuman"],
@@ -96,7 +83,7 @@
             let roundInput = document.getElementById("round-number").value.trim();
 
             if (!roundInput || isNaN(roundInput) || roundInput < 1) {
-                alert("Please enter a Round Number (like 1, 2, or 3) so your phones match!");
+                alert("Please type a Round Number first!");
                 return;
             }
 
@@ -109,10 +96,12 @@
 
             let myRole = roundAssignments[myName];
 
-            document.getElementById("screen-home").classList.add("hidden");
+            document.getElementById("screen-home").style.display = "none";
 
             if (myRole === "Rama") {
-                document.getElementById("screen-rama").classList.remove("hidden");
+                document.getElementById("screen-rama").style.style.display = "block";
+                document.getElementById("screen-rama").setAttribute("style", "background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: block;");
+                
                 let select = document.getElementById("guess-select");
                 select.innerHTML = "";
                 allPlayers.forEach(player => {
@@ -124,32 +113,38 @@
                     }
                 });
             } else {
-                document.getElementById("screen-reveal").classList.remove("hidden");
-                document.getElementById("reveal-username-header").innerHTML = `Player: <strong>${myName}</strong>`;
+                document.getElementById("screen-reveal").style.display = "block";
+                document.getElementById("reveal-username-header").innerHTML = "Player: " + myName;
                 document.getElementById("my-role").textContent = myRole;
             }
         }
 
         function revealWinner() {
             let guess = document.getElementById("guess-select").value;
-            let actualSitaUser = Object.keys(roundAssignments).find(key => roundAssignments[key] === "Sita");
+            let actualSitaUser = "";
+            
+            for (let player in roundAssignments) {
+                if (roundAssignments[player] === "Sita") {
+                    actualSitaUser = player;
+                }
+            }
 
-            document.getElementById("screen-rama").classList.add("hidden");
-            document.getElementById("screen-results").classList.remove("hidden");
+            document.getElementById("screen-rama").style.display = "none";
+            document.getElementById("screen-results").style.display = "block";
 
             let resBox = document.getElementById("result-text");
-            
-            // FIXED: Spelling error verification prevents browser lockups
             if (guess === actualSitaUser) {
-                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita! <br><strong>${actualSitaUser}</strong> had Sita. Rama wins 1000 points!`;
+                resBox.innerHTML = "🎉 Correct! You found Sita!<br>" + actualSitaUser + " had Sita. Rama gets 1000 points!";
+                resBox.style.color = "green";
             } else {
-                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked ${guess}, but Sita was hidden on <strong>${actualSitaUser}</strong>!`;
+                resBox.innerHTML = "😢 Wrong Guess!<br>You picked " + guess + ", but Sita was hidden on " + actualSitaUser + "!";
+                resBox.style.color = "red";
             }
 
             let list = document.getElementById("final-reveals-list");
             list.innerHTML = "";
             allPlayers.forEach(p => {
-                list.innerHTML += `• ${p}: <strong>${roundAssignments[p]}</strong><br>`;
+                list.innerHTML += "• " + p + ": <strong>" + roundAssignments[p] + "</strong><br>";
             });
         }
     </script>
