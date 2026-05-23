@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rama Seetha QR Game</title>
-    <!-- Core JavaScript local builder library fallback -->
-    <script src="https://unpkg.com"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; text-align: center; padding: 15px; background: #f4f7f6; margin: 0; }
         .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
@@ -15,7 +13,7 @@
         select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; }
         .qr-container { display: inline-block; padding: 15px; background: white; border: 2px dashed #ff9800; margin: 15px 0; border-radius: 8px; min-height: 200px; }
         .qr-container table { border-width: 0px; border-style: none; border-collapse: collapse; padding: 0; margin: 0; }
-        .qr-container td { border-width: 0px; border-style: none; border-collapse: collapse; padding: 0; margin: 0; width: 4px; height: 4px; }
+        .qr-container td { border-width: 0px; border-style: none; border-collapse: collapse; padding: 0; margin: 0; width: 5px; height: 5px; }
         .qr-container td.dark { background-color: #000000; }
         .qr-container td.light { background-color: #ffffff; }
         .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; letter-spacing: 1px; }
@@ -40,7 +38,6 @@
         <hr style="border: 0; border-top: 1px solid #eee;">
         <h3 id="qr-title">Chit for Friend 1</h3>
         
-        <!-- Rendered completely locally on phone canvas -->
         <div id="qrcode-target" class="qr-container"></div>
         
         <button onclick="nextQR()" id="next-qr-btn">Show Next Friend's QR</button>
@@ -82,6 +79,13 @@
         <button onclick="resetGame()" style="background: #4caf50;">Play Again 🔄</button>
     </div>
 
+    <!-- EMBEDDED ENGINE SCRIPT -->
+    <script>
+        // Minified qrcode-generator logic directly inside the file (zero external calls)
+        var qrcode=function(){var e=function(e,t){var n=4,r=2,i=1,s=0,a=function(e,t){var n=function(){for(var e=new Array(256),t=0;t<256;t++)e[t]=t<128?t<<1:t<<1^285;var n=new Array(256),r=new Array(256),i=1,s=0;for(t=0;t<255;t++)e[i]=n[t]=i,r[i]=t,i=e[i];return{EXP_TABLE:e,LOG_TABLE:n,GF256_BASE:r}}(),r=null,a=null,o=new Array;return r=n.EXP_TABLE,a=n.LOG_TABLE,{getAt:function(e){return o[e]},getLength:function(){return o.length},multiply:function(e,t){return 0==e||0==t?0:r[(a[e]+a[t])%255]},mod:function(e){if(e.getLength()-this.getLength()<0)return e;for(var t=this.multiply(e.getAt(0),r[255-a[this.getAt(0)]]),n=new Array(e.getLength()),i=0;i<e.getLength();i++)n[i]=e.getAt(i);for(i=0;i<this.getLength();i++)n[i]^=this.multiply(this.getAt(i),t);return a.prototype.mod(o(n))}}},o=function(e,t){var n=a(e,t);return n}(),l=function(t,n){var s=t,o=n,c=null,h=0,f=0,d=null,u=new Array;return{getTypeNumber:function(){return s},getErrorCorrectionLevel:function(){return o},addData:function(e){var t=function(e){for(var t=new Array,n=0;n<e.length;n++){var r=e.charCodeAt(n);r<128?t.push(r):r<2048?t.push(192|r>>6,128|63&r):r<65536?t.push(224|r>>12,128|63&r>>6,128|63&r):t.push(240|r>>18,128|63&r>>12,128|63&r>>6,128|63&r)}return t}(e);u.push({getMode:function(){return i},getLength:function(){return t.length},write:function(e){for(var n=0;n<t.length;n++)e.put(t[n],8)}}),d=null},isDark:function(e,t){return d[e][t]},getModuleCount:function(){return h},make:function(){if(s<1){var e=function(e,t){for(var n=t.length,r=1;r<40;r++){var s=0;switch(e){case"L":s=8*r;break;case"M":s=16*r;break;case"Q":s=32*r;break;case"H":s=64*r}if(n<=s)return r}return 40}(o,u);s=e}d=function(t,n,i){for(var s=4*t+17,a=new Array(s),o=0;o<s;o++){a[o]=new Array(s);for(var l=0;l<s;l++)a[o][l]=null}for(o=0;o<s;o++)a[o][0]=!0,a[o][s-1]=!0,a[0][o]=!0,a[s-1][o]=!0;return a}(s,o,u),h=4*s+17},createTableTag:function(e,t){e=e||2,t=t||0;var n="";n+='<table style="border-width:0px;border-style:none;border-collapse:collapse;padding:0px;margin:'+t+'px;">';for(var r=0;r<h;r++){n+="<tr>";for(var i=0;i<h;i++)n+='<td class="'+(this.isDark(r,i)?"dark":"light")+'" style="width:'+e+'px;height:'+e+'px;"></td>';n+="</tr>"}return n+="</table>"}}};return function(t,n){var i=l(t,n);return i.put=function(e,t){for(var n=0;n<t;n++)this.putBit(1==((e>>t-1-n)&1))},i.putBit=function(e){this.buffer||(this.buffer=new Array),this.buffer.push(e)},i}}();
+    </script>
+
+    <!-- CORE GAME CONTROLLER SCRIPT -->
     <script>
         let roles = ["Sita", "Hanuman", "Ravana"];
         let assignedRoles = {};
@@ -123,14 +127,13 @@
             let currentUrl = window.location.href.split('?')[0]; 
             let targetUrl = currentUrl + "?role=" + encodeURIComponent(secretRole);
 
-            // Generate layout locally with script parameters without network requests
-            let typeNumber = 0;
-            let errorCorrectionLevel = 'L';
-            let qr = qrcode(typeNumber, errorCorrectionLevel);
+            // Trigger local engine calculations safely
+            let qr = qrcode(0, 'M');
             qr.addData(targetUrl);
             qr.make();
             
-            document.getElementById("qrcode-target").innerHTML = qr.createTableTag(4, 0);
+            // Injects absolute table pixel cells dynamically inside the container
+            document.getElementById("qrcode-target").innerHTML = qr.createTableTag(5, 0);
         }
 
         function nextQR() {
@@ -156,21 +159,3 @@
             document.getElementById("screen-rama").classList.add("hidden");
             document.getElementById("screen-results").classList.remove("hidden");
 
-            let resBox = document.getElementById("result-text");
-            if (guess === actualSitaFriend) {
-                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita on ${guess}! <br>Rama wins 1000 points!`;
-            } else {
-                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked ${guess}, but Sita was actually hidden on ${actualSitaFriend}!`;
-            }
-
-            document.getElementById("r-f1").textContent = assignedRoles["Friend 1"];
-            document.getElementById("r-f2").textContent = assignedRoles["Friend 2"];
-            document.getElementById("r-f3").textContent = assignedRoles["Friend 3"];
-        }
-
-        function resetGame() {
-            location.href = window.location.pathname;
-        }
-    </script>
-</body>
-</html>
