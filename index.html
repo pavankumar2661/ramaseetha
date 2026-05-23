@@ -8,74 +8,63 @@
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f7f6; margin: 0; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 15px auto; }
         h2 { color: #d32f2f; margin-top: 0; }
-        button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; }
-        input, select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-        .code-box { background: #fff3e0; padding: 15px; border-radius: 8px; font-size: 16px; border: 2px dashed #ff9800; margin: 15px 0; text-align: left; }
-        .role-text { font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0; }
+        button { background: #ff9800; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin: 10px 0; display: block; box-sizing: border-box; }
+        button:hover { background: #e65100; }
+        input, select { padding: 12px; font-size: 16px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; display: block; }
+        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 25px 0; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; }
         .hidden { display: none !important; }
+        .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN 1: CHOOSE PLAYER -->
+    <!-- SCREEN 1: LOGIN SETUP -->
     <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
-        <p>Select your name to begin:</p>
+        
+        <strong>Select Your Name:</strong></label>
         
             <option value="Medhansh">Medhansh</option>
             <option value="Suma">Suma</option>
             <option value="Kanku">Kanku</option>
             <option value="Tulasi">Tulasi</option>
         </select>
-        <button onclick="checkSelection()" style="background: #4caf50;">Confirm My Phone</button>
+
+        <label for="round-number"><strong>Enter Round Number (1-9):</strong></label>
+        <p style="font-size: 13px; color: #666; margin: 0;">(All 4 friends must type the exact same number to link devices!)</p>
+        <input type="number" id="round-number" placeholder="Enter Round Number e.g. 1" min="1" max="9">
+
+        <button onclick="checkSelection()" style="background: #4caf50;">Confirm My Phone 🚀</button>
     </div>
 
-    <!-- SCREEN 2: DEALER / CARD GENERATOR -->
-    <div id="screen-dealer" class="card hidden">
-        <h2>🏹 Game Dashboard</h2>
-        <p>Give these secret passcode numbers to your friends right now:</p>
-        
-        <div class="code-box" id="dealer-codes-display">
-            <!-- Injected via JavaScript dynamically -->
-        </div>
-        
-        <p style="font-size: 14px; color: #555;">Once they enter their codes, look at them and guess!</p>
-        <button onclick="goToGuessing()" style="background: #e65100;">Everyone Ready? Start Guessing!</button>
-    </div>
-
-    <!-- SCREEN 3: PASSCODE ENTRY FOR JOINERS -->
-    <div id="screen-joiner-input" class="card hidden">
-        <h2>🔑 Secret Key Room</h2>
-        <p>Ask the Game Host for your personal passcode:</p>
-        <input type="text" id="joiner-passcode" placeholder="Enter your 3-digit passcode">
-        <button onclick="revealJoinerRole()" style="background: #0288d1;">Open My Chit</button>
-    </div>
-
-    <!-- SCREEN 4: CHIT REVEAL VIEW -->
+    <!-- SCREEN 2: STANDARD REVEAL FOR CHITS -->
     <div id="screen-reveal" class="card hidden">
         <h2>🤫 Your Secret Chit</h2>
         <p id="reveal-username-header"></p>
-        <div id="my-role" class="role-text"></div>
-        <p style="color: #666; font-size: 14px;">Keep this screen open so Rama can inspect your face!</p>
-        <button onclick="window.location.reload()" style="background: #666;">Exit Game</button>
+        <div id="my-role" class="role-box"></div>
+        <p style="color: #666; font-size: 14px;">Keep your screen hidden from your friends!</p>
+        <p style="font-size: 14px; font-weight: bold; color: #d32f2f;">Hand the phone to the RAMA player when they are ready to guess.</p>
     </div>
 
-    <!-- SCREEN 5: RAMA GUESSING SELECTION -->
+    <!-- SCREEN 3: RAMA GUESSING VIEW -->
     <div id="screen-rama" class="card hidden">
         <h2>🏹 You are RAMA!</h2>
-        <p>Look closely at your 3 friends. Guess who holds the secret <strong>Sita</strong> chit:</p>
+        <p>Look closely at your 3 friends' faces. Guess who holds the secret <strong>Sita</strong> chit:</p>
+        
+        <label for="guess-select">Select your guess:</label>
         <select id="guess-select">
-            <!-- Suspects populated via Javascript -->
+            <!-- Populated via Javascript dynamically -->
         </select>
-        <button onclick="revealWinner()">Submit Final Guess</button>
+        
+        <button onclick="revealWinner()" style="background: #e65100;">Submit Final Guess</button>
     </div>
 
-    <!-- SCREEN 6: GAME OVER SUMMARY -->
+    <!-- SCREEN 4: ROUND END GAME OVER RESULTS -->
     <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
         <div id="result-text" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;"></div>
         
-        <div class="code-box" style="background:#eee; border:1px solid #ccc;">
+        <div class="assignment-list">
             <strong>Actual Secret Assignments:</strong><br><br>
             <span id="final-reveals-list"></span>
         </div>
@@ -85,111 +74,65 @@
 
     <script>
         const allPlayers = ["Medhansh", "Suma", "Kanku", "Tulasi"];
-        const chitsList = ["Rama", "Sita", "Hanuman", "Ravana"];
 
-        // Encrypted secure dictionary parameters mapped out mathematically
-        const baseKeyMapping = {
-            "712": "Sita", "459": "Sita", "831": "Sita",
-            "164": "Hanuman", "582": "Hanuman", "927": "Hanuman",
-            "395": "Ravana", "248": "Ravana", "613": "Ravana",
-            "111": "Rama", "222": "Rama", "333": "Rama"
-        };
+        // Fixed mathematical matrices block ensures identical distribution maps offline
+        const permutations = [
+            ["Rama", "Sita", "Hanuman", "Ravana"],
+            ["Sita", "Rama", "Ravana", "Hanuman"],
+            ["Hanuman", "Ravana", "Rama", "Sita"],
+            ["Ravana", "Hanuman", "Sita", "Rama"],
+            ["Rama", "Hanuman", "Ravana", "Sita"],
+            ["Sita", "Ravana", "Hanuman", "Rama"],
+            ["Hanuman", "Sita", "Rama", "Ravana"],
+            ["Ravana", "Rama", "Sita", "Hanuman"],
+            ["Rama", "Ravana", "Sita", "Hanuman"]
+        ];
 
         let myName = "";
         let roundAssignments = {};
-        let roundPasscodes = {};
 
         function checkSelection() {
             myName = document.getElementById("user-identity").value;
-            
-            // Seed calculation creates rotating outcomes based on precise millisecond interval counters
-            let d = new Date();
-            let randomizerIndex = (d.getSeconds() + d.getMilliseconds()) % 24;
+            let roundInput = document.getElementById("round-number").value.trim();
 
-            // Mathematical combinations matrix containing all possible 24 variations of the 4 chits
-            let permutations = [
-                ["Rama","Sita","Hanuman","Ravana"], ["Rama","Sita","Ravana","Hanuman"], ["Rama","Hanuman","Sita","Ravana"], ["Rama","Hanuman","Ravana","Sita"],
-                ["Rama","Ravana","Sita","Hanuman"], ["Rama","Ravana","Hanuman","Sita"], ["Sita","Rama","Hanuman","Ravana"], ["Sita","Rama","Ravana","Hanuman"],
-                ["Sita","Hanuman","Rama","Ravana"], ["Sita","Hanuman","Ravana","Rama"], ["Sita","Ravana","Rama","Hanuman"], ["Sita","Ravana","Hanuman","Rama"],
-                ["Hanuman","Rama","Sita","Ravana"], ["Hanuman","Rama","Ravana","Sita"], ["Hanuman","Sita","Rama","Ravana"], ["Hanuman","Sita","Ravana","Rama"],
-                ["Hanuman","Ravana","Rama","Sita"], ["Hanuman","Ravana","Sita","Rama"], ["Ravana","Rama","Sita","Hanuman"], ["Ravana","Rama","Hanuman","Sita"],
-                ["Ravana","Sita","Rama","Hanuman"], ["Ravana","Sita","Hanuman","Rama"], ["Ravana","Hanuman","Rama","Sita"], ["Ravana","Hanuman","Sita","Rama"]
-            ];
+            if (!roundInput || isNaN(roundInput) || roundInput < 1) {
+                alert("Please enter a valid Round Number so your phones can sync!");
+                return;
+            }
 
-            let selectedPattern = permutations[randomizerIndex];
-            
-            // Map the layout parameters securely
+            // Convert round number safely to index mapping boundaries
+            let index = (parseInt(roundInput) - 1) % permutations.length;
+            let selectedPattern = permutations[index];
+
+            // Build synchronized offline global role object array
             allPlayers.forEach((player, i) => {
                 roundAssignments[player] = selectedPattern[i];
             });
 
-            // Map code keys to roles offline
-            let poolSita = ["712", "459", "831"];
-            let poolHanuman = ["164", "582", "927"];
-            let poolRavana = ["395", "248", "613"];
-            let poolRama = ["111", "222", "333"];
+            let myRole = roundAssignments[myName];
 
-            allPlayers.forEach(player => {
-                let role = roundAssignments[player];
-                if (role === "Rama") roundPasscodes[player] = poolRama[Math.floor(Math.random()*3)];
-                if (role === "Sita") roundPasscodes[player] = poolSita[Math.floor(Math.random()*3)];
-                if (role === "Hanuman") roundPasscodes[player] = poolHanuman[Math.floor(Math.random()*3)];
-                if (role === "Ravana") roundPasscodes[player] = poolRavana[Math.floor(Math.random()*3)];
-            });
-
-            // Switch UI boards based on identity checks
-            if (roundAssignments[myName] === "Rama") {
-                renderDealerDashboard();
-            } else {
-                document.getElementById("screen-home").classList.add("hidden");
-                document.getElementById("screen-joiner-input").classList.remove("hidden");
-            }
-        }
-
-        function renderDealerDashboard() {
+            // Direct view execution path depending on calculated identity states
             document.getElementById("screen-home").classList.add("hidden");
-            document.getElementById("screen-dealer").classList.remove("hidden");
 
-            let box = document.getElementById("dealer-codes-display");
-            box.innerHTML = `🌟 <strong>You are RAMA!</strong><br><br>`;
-            
-            allPlayers.forEach(player => {
-                if (player !== myName) {
-                    box.innerHTML += `• 👤 <strong>${player}:</strong> code <span style="color:#d32f2f; font-weight:bold;">${roundPasscodes[player]}</span><br>`;
-                }
-            });
-        }
-
-        function revealJoinerRole() {
-            let val = document.getElementById("joiner-passcode").value.trim();
-            if(!val) return alert("Please type your passcode!");
-
-            if (baseKeyMapping[val]) {
-                let matchedRole = baseKeyMapping[val];
-                document.getElementById("screen-joiner-input").classList.add("hidden");
-                document.getElementById("screen-reveal").classList.remove("hidden");
-                
-                document.getElementById("reveal-username-header").innerHTML = `Player: <strong>${myName}</strong>`;
-                document.getElementById("my-role").textContent = matchedRole;
+            if (myRole === "Rama") {
+                // Show Rama's Dedicated Guessing Screen
+                document.getElementById("screen-rama").classList.remove("hidden");
+                let select = document.getElementById("guess-select");
+                select.innerHTML = "";
+                allPlayers.forEach(player => {
+                    if (player !== myName) {
+                        let opt = document.createElement("option");
+                        opt.value = player;
+                        opt.textContent = player;
+                        select.appendChild(opt);
+                    }
+                });
             } else {
-                alert("Wrong Passcode! Ask Rama for the correct code matching your name.");
+                // Show standard private identity card to the other 3 players
+                document.getElementById("screen-reveal").classList.remove("hidden");
+                document.getElementById("reveal-username-header").innerHTML = `Player: <strong>${myName}</strong>`;
+                document.getElementById("my-role").textContent = myRole;
             }
-        }
-
-        function goToGuessing() {
-            document.getElementById("screen-dealer").classList.add("hidden");
-            document.getElementById("screen-rama").classList.remove("hidden");
-
-            let select = document.getElementById("guess-select");
-            select.innerHTML = "";
-            allPlayers.forEach(player => {
-                if (player !== myName) {
-                    let opt = document.createElement("option");
-                    opt.value = player;
-                    opt.textContent = player;
-                    select.appendChild(opt);
-                }
-            });
         }
 
         function revealWinner() {
@@ -197,3 +140,21 @@
             let actualSitaUser = Object.keys(roundAssignments).find(key => roundAssignments[key] === "Sita");
 
             document.getElementById("screen-rama").classList.add("hidden");
+            document.getElementById("screen-results").classList.remove("hidden");
+
+            let resBox = document.getElementById("result-text");
+            if (guess === actualSitaUser) {
+                resBox.innerHTML = `🎉 <span style="color:green;">Correct!</span> You caught Sita! <br><strong>${actualSitaUser}</strong> had Sita. Rama wins 1000 points!`;
+            } else {
+                resBox.innerHTML = `😢 <span style="color:red;">Wrong Guess!</span> You picked ${guess}, but Sita was actually hidden on <strong>${actualSitaUser}</strong>!`;
+            }
+
+            let list = document.getElementById("final-reveals-list");
+            list.innerHTML = "";
+            allPlayers.forEach(p => {
+                list.innerHTML += `• ${p}: <strong>${roundAssignments[p]}</strong><br>`;
+            });
+        }
+    </script>
+</body>
+</html>
