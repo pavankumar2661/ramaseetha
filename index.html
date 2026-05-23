@@ -1,63 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rama Seetha Game</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 360px; margin: 15px auto; border: 1px solid #ccc; box-sizing: border-box; }
+        h2 { color: #d32f2f; margin-top: 0; }
+        
+        /* Large Touch-Friendly Radio Options */
+        .option-container { text-align: left; margin: 15px 0; }
+        .touch-label { display: block; background: #f9f9f9; padding: 14px; margin: 8px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        input[type="radio"] { margin-right: 12px; transform: scale(1.3); vertical-align: middle; }
+        
+        input[type="number"] { padding: 12px; font-size: 18px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; text-align: center; }
+        
+        .btn { background: #4caf50; color: white; border: none; padding: 14px; font-size: 18px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; display: block; box-sizing: border-box; }
+        .btn-guess { background: #d32f2f; }
+        
+        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 25px 0; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; }
+        .hidden { display: none !important; }
+        .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
+    </style>
 </head>
-<body style="font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6;">
+<body>
 
     <!-- SCREEN 1: LOGIN SETUP -->
-    <div id="screen-home" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc;">
+    <div id="screen-home" class="card">
         <h2>✨ Rama Seetha Game ✨</h2>
         
-        <p><strong>1. Select Your Name:</strong></p>
-        
-            <option value="Medhansh">Medhansh</option>
-            <option value="Suma">Suma</option>
-            <option value="Kanku">Kanku</option>
-            <option value="Tulasi">Tulasi</option>
-        </select>
+        <p style="margin-bottom: 5px;"><strong>1. Choose Your Name:</strong></p>
+        <div class="option-container">
+            <label class="touch-label"><input type="radio" name="player-name" value="Medhansh" checked> Medhansh</label>
+            <label class="touch-label"><input type="radio" name="player-name" value="Suma"> Suma</label>
+            <label class="touch-label"><input type="radio" name="player-name" value="Kanku"> Kanku</label>
+            <label class="touch-label"><input type="radio" name="player-name" value="Tulasi"> Tulasi</label>
+        </div>
 
-        <p><strong>2. Enter Round Number (1 to 9):</strong></p>
-        <p style="font-size: 12px; color: #666; margin: 0;">All 4 phones must type the exact same number!</p>
-        <input type="number" id="round-number" placeholder="Example: 1" style="font-size: 18px; padding: 10px; width: 80%; margin-bottom: 20px;">
+        <p style="margin: 15px 0 5px 0;"><strong>2. Enter Round Number (1 to 9):</strong></p>
+        <p style="font-size: 12px; color: #666; margin: 0 0 5px 0;">All 4 phones must type the exact same number!</p>
+        <input type="number" id="round-number" placeholder="Example: 1" min="1" max="9">
 
-        <button onclick="checkSelection()" style="font-size: 18px; padding: 12px; width: 90%; background: green; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Confirm My Phone 🚀</button>
+        <button class="btn" onclick="checkSelection()">Confirm My Phone 🚀</button>
     </div>
 
     <!-- SCREEN 2: CHIT REVEAL -->
-    <div id="screen-reveal" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: none;">
+    <div id="screen-reveal" class="card hidden">
         <h2>🤫 Your Secret Chit</h2>
         <h3 id="reveal-username-header"></h3>
-        <div id="my-role" style="font-size: 32px; font-weight: bold; color: blue; background: #e3f2fd; padding: 15px; margin: 20px 0; border-radius: 5px;"></div>
-        <p style="color: #666;">Keep this card hidden from your friends!</p>
-        <button onclick="window.location.reload()" style="padding: 10px; background: #666; color: white; border: none;">Exit Game</button>
+        <div id="my-role" class="role-box"></div>
+        <p style="color: #666; font-size: 14px;">Keep your screen hidden from your friends!</p>
+        <button class="btn" style="background:#666;" onclick="window.location.reload()">Exit Game</button>
     </div>
 
     <!-- SCREEN 3: RAMA GUESSING VIEW -->
-    <div id="screen-rama" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: none;">
+    <div id="screen-rama" class="card hidden">
         <h2>🏹 You are RAMA!</h2>
         <p>Look at your 3 friends. Guess who has the <strong>Sita</strong> chit:</p>
         
-        <select id="guess-select" style="font-size: 18px; padding: 10px; width: 90%; margin-bottom: 20px;">
-            <!-- Populated automatically -->
-        </select>
+        <div class="option-container" id="guess-radio-container">
+            <!-- Populated via JavaScript natively -->
+        </div>
         
-        <button onclick="revealWinner()" style="font-size: 18px; padding: 12px; width: 90%; background: red; color: white; border: none; border-radius: 5px; font-weight: bold;">Submit Final Guess</button>
+        <button class="btn btn-guess" onclick="revealWinner()">Submit Final Guess</button>
     </div>
 
     <!-- SCREEN 4: SUMMARY RESULTS -->
-    <div id="screen-results" style="background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: none;">
+    <div id="screen-results" class="card hidden">
         <h2>🏁 Round Results</h2>
         <h3 id="result-text"></h3>
         
-        <div style="text-align: left; background: #eee; padding: 15px; border-radius: 5px;">
+        <div class="assignment-list">
             <strong>Actual Chit Locations:</strong><br><br>
             <span id="final-reveals-list"></span>
         </div>
         
-        <button onclick="window.location.reload()" style="font-size: 18px; padding: 12px; width: 90%; background: green; color: white; border: none; margin-top: 20px;">Play Next Round 🔄</button>
+        <button class="btn" onclick="window.location.reload()">Play Next Round 🔄</button>
     </div>
 
     <script>
@@ -79,9 +98,16 @@
         let roundAssignments = {};
 
         function checkSelection() {
-            myName = document.getElementById("user-identity").value;
-            let roundInput = document.getElementById("round-number").value.trim();
+            // Read selected option safely from the touch list box
+            let radios = document.getElementsByName("player-name");
+            for (let i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    myName = radios[i].value;
+                    break;
+                }
+            }
 
+            let roundInput = document.getElementById("round-number").value.trim();
             if (!roundInput || isNaN(roundInput) || roundInput < 1) {
                 alert("Please type a Round Number first!");
                 return;
@@ -96,41 +122,51 @@
 
             let myRole = roundAssignments[myName];
 
-            document.getElementById("screen-home").style.display = "none";
+            document.getElementById("screen-home").classList.add("hidden");
 
             if (myRole === "Rama") {
-                document.getElementById("screen-rama").style.style.display = "block";
-                document.getElementById("screen-rama").setAttribute("style", "background: white; padding: 20px; border-radius: 10px; max-width: 350px; margin: auto; border: 1px solid #ccc; display: block;");
+                // FIXED: Direct class handling instead of buggy broken style chain properties
+                document.getElementById("screen-rama").classList.remove("hidden");
                 
-                let select = document.getElementById("guess-select");
-                select.innerHTML = "";
+                let container = document.getElementById("guess-radio-container");
+                container.innerHTML = "";
+                
+                // Creates large clickable radio buttons for suspects list layout screen
+                let firstChecked = true;
                 allPlayers.forEach(player => {
                     if (player !== myName) {
-                        let opt = document.createElement("option");
-                        opt.value = player;
-                        opt.textContent = player;
-                        select.appendChild(opt);
+                        let checkedStr = firstChecked ? "checked" : "";
+                        container.innerHTML += `<label class="touch-label"><input type="radio" name="guess-name" value="${player}" ${checkedStr}> ${player}</label>`;
+                        firstChecked = false;
                     }
                 });
             } else {
-                document.getElementById("screen-reveal").style.display = "block";
+                document.getElementById("screen-reveal").classList.remove("hidden");
                 document.getElementById("reveal-username-header").innerHTML = "Player: " + myName;
                 document.getElementById("my-role").textContent = myRole;
             }
         }
 
         function revealWinner() {
-            let guess = document.getElementById("guess-select").value;
-            let actualSitaUser = "";
-            
-            for (let player in roundAssignments) {
-                if (roundAssignments[player] === "Sita") {
-                    actualSitaUser = player;
+            let guess = "";
+            let radios = document.getElementsByName("guess-name");
+            for (let i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    guess = radios[i].value;
+                    break;
                 }
             }
 
-            document.getElementById("screen-rama").style.display = "none";
-            document.getElementById("screen-results").style.display = "block";
+            let actualSitaUser = "";
+            for (let player in roundAssignments) {
+                if (roundAssignments[player] === "Sita") {
+                    actualSitaUser = player;
+                    break;
+                }
+            }
+
+            document.getElementById("screen-rama").classList.add("hidden");
+            document.getElementById("screen-results").classList.remove("hidden");
 
             let resBox = document.getElementById("result-text");
             if (guess === actualSitaUser) {
