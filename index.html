@@ -9,7 +9,6 @@
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 360px; margin: 15px auto; border: 1px solid #ccc; box-sizing: border-box; }
         h2 { color: #d32f2f; margin-top: 0; }
         
-        /* Large Touch-Friendly Radio Options */
         .option-container { text-align: left; margin: 15px 0; }
         .touch-label { display: block; background: #f9f9f9; padding: 14px; margin: 8px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
         input[type="radio"] { margin-right: 12px; transform: scale(1.3); vertical-align: middle; }
@@ -38,9 +37,9 @@
             <label class="touch-label"><input type="radio" name="player-name" value="Tulasi"> Tulasi</label>
         </div>
 
-        <p style="margin: 15px 0 5px 0;"><strong>2. Enter Round Number (1 to 9):</strong></p>
-        <p style="font-size: 12px; color: #666; margin: 0 0 5px 0;">All 4 phones must type the exact same number!</p>
-        <input type="number" id="round-number" placeholder="Example: 1" min="1" max="9">
+        <p style="margin: 15px 0 5px 0;"><strong>2. Make a 4-Digit Game Code:</strong></p>
+        <p style="font-size: 12px; color: #666; margin: 0 0 5px 0;">All 4 friends must type the exact same code to sync roles!</p>
+        <input type="number" id="round-number" placeholder="Example: 5831">
 
         <button class="btn" onclick="checkSelection()">Confirm My Phone 🚀</button>
     </div>
@@ -60,7 +59,7 @@
         <p>Look at your 3 friends. Guess who has the <strong>Sita</strong> chit:</p>
         
         <div class="option-container" id="guess-radio-container">
-            <!-- Populated via JavaScript natively -->
+            <!-- Populated via JavaScript -->
         </div>
         
         <button class="btn btn-guess" onclick="revealWinner()">Submit Final Guess</button>
@@ -81,24 +80,29 @@
 
     <script>
         const allPlayers = ["Medhansh", "Suma", "Kanku", "Tulasi"];
-
-        const permutations = [
-            ["Rama", "Sita", "Hanuman", "Ravana"],
-            ["Sita", "Rama", "Ravana", "Hanuman"],
-            ["Hanuman", "Ravana", "Rama", "Sita"],
-            ["Ravana", "Hanuman", "Sita", "Rama"],
-            ["Rama", "Hanuman", "Ravana", "Sita"],
-            ["Sita", "Ravana", "Hanuman", "Rama"],
-            ["Hanuman", "Sita", "Rama", "Ravana"],
-            ["Ravana", "Rama", "Sita", "Hanuman"],
-            ["Rama", "Ravana", "Sita", "Hanuman"]
-        ];
-
         let myName = "";
         let roundAssignments = {};
 
+        // Custom mathematical seed-shuffler logic (forces matching randoms offline)
+        function seededRandomShuffle(array, seed) {
+            let m = 0x80000000; // 2**31
+            let a = 1103515245;
+            let c = 12345;
+            let currentSeed = seed;
+
+            function nextRandom() {
+                currentSeed = (a * currentSeed + c) % m;
+                return currentSeed / (m - 1);
+            }
+
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(nextRandom() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         function checkSelection() {
-            // Read selected option safely from the touch list box
             let radios = document.getElementsByName("player-name");
             for (let i = 0; i < radios.length; i++) {
                 if (radios[i].checked) {
@@ -108,30 +112,28 @@
             }
 
             let roundInput = document.getElementById("round-number").value.trim();
-            if (!roundInput || isNaN(roundInput) || roundInput < 1) {
-                alert("Please type a Round Number first!");
+            if (!roundInput || isNaN(roundInput) || roundInput.length < 1) {
+                alert("Please enter a Game Code first!");
                 return;
             }
 
-            let index = (parseInt(roundInput) - 1) % permutations.length;
-            let selectedPattern = permutations[index];
+            // Generate fully randomized chits array using the code entered as a seed map
+            let baseChits = ["Rama", "Sita", "Hanuman", "Ravana"];
+            let numericSeed = parseInt(roundInput);
+            let randomizedChits = seededRandomShuffle(baseChits, numericSeed);
 
             allPlayers.forEach((player, i) => {
-                roundAssignments[player] = selectedPattern[i];
+                roundAssignments[player] = randomizedChits[i];
             });
 
             let myRole = roundAssignments[myName];
-
             document.getElementById("screen-home").classList.add("hidden");
 
             if (myRole === "Rama") {
-                // FIXED: Direct class handling instead of buggy broken style chain properties
                 document.getElementById("screen-rama").classList.remove("hidden");
-                
                 let container = document.getElementById("guess-radio-container");
                 container.innerHTML = "";
                 
-                // Creates large clickable radio buttons for suspects list layout screen
                 let firstChecked = true;
                 allPlayers.forEach(player => {
                     if (player !== myName) {
