@@ -3,61 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Personal Ticket</title>
+    <title>My Tambola Ticket</title>
+    <!-- PeerJS Library CDN -->
+    <script src="https://unpkg.com"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
-        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
-        p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
-        .ticket-container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; background: #34495e; padding: 6px; border-radius: 8px; }
-        .ticket-cell { background: #fff; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #2c3e50; border-radius: 4px; cursor: pointer; user-select: none; }
-        .ticket-cell.empty { background: #eaedf1; cursor: default; }
-        .ticket-cell.marked { background: #f1c40f; color: #000; font-size: 20px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
+        :root { --primary-bg: #3498db; --grid-border: #34495e; --mark-color: #f1c40f; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; }
+        .panel { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { padding: 12px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 80%; margin: 8px 0; text-align: center; }
+        button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; background: #3498db; border: none; border-radius: 6px; font-weight: bold; width: 85%; }
+        #ticket-view { display: none; border-top: 8px solid var(--primary-bg); }
+        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; background: var(--grid-border); padding: 5px; border-radius: 6px; margin-top: 15px; }
+        .ticket-cell { background: #fff; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #2c3e50; border-radius: 4px; }
+        .ticket-cell.empty { background: #eaedf1; }
+        .ticket-cell.marked { background: var(--mark-color); color: #000; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
+        #announcement-banner { font-size: 18px; font-weight: bold; color: #e74c3c; margin: 15px 0; background: #fdf2f2; padding: 10px; border-radius: 5px; }
+        
+        .theme-selector { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; align-items: center; }
+        .theme-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
 
-    <div class="ticket-container">
-        <h1 id="player-title">👤 My Ticket</h1>
-        <p>Tap numbers to cross them out in gold as the host announces them!</p>
-        <div id="grid-box" class="ticket-grid"></div>
+    <!-- Join Entry Form UI -->
+    <div id="join-screen" class="panel">
+        <h2>Enter Room Details</h2>
+        <input type="text" id="game-code" placeholder="4-Digit Room Code (e.g. 5842)">
+        <input type="text" id="p-name" placeholder="Enter Your Name">
+        <button onclick="connectToHostRoom()">Connect Ticket</button>
+    </div>
+
+    <!-- Active Interactive Ticket Display Screen UI -->
+    <div id="ticket-view" class="panel">
+        <div class="theme-selector">
+            <span style="font-weight: bold; font-size: 12px; color: #555;">🎨 Card Theme:</span>
+            <div class="theme-dot" style="background: #3498db;" onclick="setTheme('#3498db', '#34495e', '#f1c40f')"></div>
+            <div class="theme-dot" style="background: #9b59b6;" onclick="setTheme('#9b59b6', '#2c1a36', '#2ecc71')"></div>
+            <div class="theme-dot" style="background: #e67e22;" onclick="setTheme('#e67e22', '#4a2300', '#3498db')"></div>
+        </div>
+        <h2 id="display-title">👤 My Ticket</h2>
+        <div id="announcement-banner">Connecting...</div>
+        <div id="ticket-grid" class="ticket-grid"></div>
     </div>
 
     <script>
-        window.onload = function() {
-            var urlParams = new URLSearchParams(window.location.search);
-            var nameParam = urlParams.get('name');
-            var dataParam = urlParams.get('data');
+        var peer = null;
+        var conn = null;
 
-            if (nameParam && dataParam) {
-                document.getElementById('player-title').innerText = "👤 Player: " + decodeURIComponent(nameParam);
-                buildMobileViewGrid(dataParam);
-            } else {
-                document.body.innerHTML = "<h1>⚠️ Invalid Ticket Link</h1><p>Please use the private web link provided by your host.</p>";
-            }
-        };
+        function connectToHostRoom() {
+            var code = document.getElementById("game-code").value.trim();
+            var name = document.getElementById("p-name").value.trim();
+            if(!code || !name) { alert("Please complete all inputs!"); return; }
 
-        function buildMobileViewGrid(dataString) {
-            var numbers = dataString.split("-");
-            var gridBox = document.getElementById("grid-box");
-            gridBox.innerHTML = "";
+            // Initialize local player instance mapping public directories
+            peer = new Peer();
 
-            numbers.forEach(function(valStr) {
-                var value = parseInt(valStr);
-                var cell = document.createElement("div");
-                
-                if (value === 0) {
-                    cell.className = "ticket-cell empty";
-                } else {
-                    cell.className = "ticket-cell";
-                    cell.innerText = value;
-                    // Allows the player to cross-out numbers manually on their touchscreen
-                    cell.onclick = function() {
-                        cell.classList.toggle("marked");
-                    };
-                }
-                gridBox.appendChild(cell);
+            peer.on('open', function() {
+                // Connect to host's distinct signature ID
+                conn = peer.connect("tambola-room-" + code);
+
+                conn.on('open', function() {
+                    document.getElementById("join-screen").style.display = "none";
+                    document.getElementById("ticket-view").style.display = "block";
+                    document.getElementById("announcement-banner").innerText = "Lobby joined! Waiting for host to start...";
+                    
+                    // Announce player details to the Host connection loop
+                    conn.send({ type: "join", playerName: name });
+                });
+
+                conn.on('data', function(data) {
+                    if (data.type === "ticket") {
+                        document.getElementById("display-title").innerText = "👤 Player: " + data.name;
+                        renderReceivedTicket(data.ticketData);
+                    }
+                    if (data.type === "status" && data.status === "active") {
+                        document.getElementById("announcement-banner").innerText = "Game active! Waiting for first draw...";
+                    }
+                    if (data.type === "draw") {
+                        var calledArray = data.calledArray;
+                        var latest = calledArray[calledArray.length - 1];
+                        document.getElementById("announcement-banner").innerText = "Last Called Number: " + latest;
+                        
+                        // Cross-reference data calls and highlight matches instantly
+                        calledArray.forEach(function(num) {
+                            var cell = document.getElementById("c-" + num);
+                            if(cell) cell.className = "ticket-cell marked";
+                        });
+                    }
+                });
             });
+
+            peer.on('error', function(err) {
+                alert("Could not connect to room! Verify code parameters match the host screen.");
+            });
+        }
+
+        function renderReceivedTicket(ticketDataStr) {
+            var parts = ticketDataStr.split("-");
+            var grid = document.getElementById("ticket-grid");
+            grid.innerHTML = "";
+
+            parts.forEach(function(valStr) {
+                var val = parseInt(valStr);
+                var cell = document.createElement("div");
+                cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
+                if(val !== 0) { cell.innerText = val; cell.id = "c-" + val; }
+                grid.appendChild(cell);
+            });
+        }
+
+        function setTheme(primary, border, mark) {
+            document.documentElement.style.setProperty('--primary-bg', primary);
+            document.documentElement.style.setProperty('--grid-border', border);
+            document.documentElement.style.setProperty('--mark-color', mark);
         }
     </script>
 </body>
