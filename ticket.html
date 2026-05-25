@@ -19,11 +19,12 @@
         .prize-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #f8fafc; border-radius: 6px; margin: 6px 0; border: 1px solid #e2e8f0; }
         .claim-btn { font-size: 12px; padding: 6px 12px; width: auto; background: #e67e22; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
         #token-display-banner { display: none; background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 15px; }
-        #token-txt { font-size: 13px; word-break: break-all; font-family: monospace; display: block; margin-top: 5px; background: white; padding: 8px; border-radius: 4px; border: 1px solid #a5d6a7; user-select: all; }
+        #token-txt { font-size: 32px; font-family: monospace; display: block; margin-top: 5px; background: white; padding: 5px; border-radius: 4px; border: 1px solid #a5d6a7; color: #2e7d32; letter-spacing: 4px; }
     </style>
 </head>
 <body>
 
+    <!-- 1. Name Entry Screen -->
     <div id="join-screen" class="panel">
         <h2>Enter Your Name</h2>
         <input type="text" id="p-name" placeholder="Enter name (e.g. Pavan)">
@@ -31,19 +32,21 @@
         <button onclick="generateTicketAndOpen()">Get Ticket</button>
     </div>
 
+    <!-- 2. Main Game Dashboard -->
     <div id="ticket-grid-view" class="panel">
         <h2> My Ticket</h2>
         <div id="ticket-grid" class="ticket-grid"></div>
 
-        <div id="token-display-banner">📢 Share this verification code with the Host:<br><span id="token-txt">-----</span></div>
+        <!-- 4-Digit Claim PIN Display Banner -->
+        <div id="token-display-banner">📢 Claim PIN for Host:<br><span id="token-txt">----</span></div>
 
         <div class="prize-box">
-            <h3>🏆 Verify Claims</h3>
-            <div class="prize-row"><span>Early Five</span> <button class="claim-btn" onclick="generateValidationCode('E5')">Generate Code</button></div>
-            <div class="prize-row"><span>First Line</span> <button class="claim-btn" onclick="generateValidationCode('L1')">Generate Code</button></div>
-            <div class="prize-row"><span>Second Line</span> <button class="claim-btn" onclick="generateValidationCode('L2')">Generate Code</button></div>
-            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" onclick="generateValidationCode('L3')">Generate Code</button></div>
-            <div class="prize-row"><span>Full House</span> <button class="claim-btn" style="background:#e74c3c;" onclick="generateValidationCode('FH')">Generate Code</button></div>
+            <h3>🏆 Generate Claim PIN</h3>
+            <div class="prize-row"><span>Early Five</span> <button class="claim-btn" onclick="generateFourDigitPin(0)">Get PIN</button></div>
+            <div class="prize-row"><span>First Line</span> <button class="claim-btn" onclick="generateValidationCode(1)">Get PIN</button></div>
+            <div class="prize-row"><span>Second Line</span> <button class="claim-btn" onclick="generateValidationCode(2)">Get PIN</button></div>
+            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" onclick="generateValidationCode(3)">Get PIN</button></div>
+            <div class="prize-row"><span>Full House</span> <button class="claim-btn" style="background:#e74c3c;" onclick="generateFourDigitPin(4)">Get PIN</button></div>
         </div>
     </div>
 
@@ -65,11 +68,41 @@
             buildTicketGridStringMethod();
         }
 
-        function generateValidationCode(typeCode) {
-            var token = typeCode + "-" + nameInput.toUpperCase().replace(/\s+/g, '') + "-" + flatTicketNumbersList.join("-");
-            document.getElementById("token-txt").innerText = token;
+        function generateValidationCode(prizeId) {
+            var sum = 0;
+            var startIdx = (prizeId === 1) ? 0 : (prizeId === 2) ? 9 : 18;
+            var endIdx = startIdx + 9;
+
+            for (var idx = startIdx; idx < endIdx; idx++) {
+                var num = flatTicketNumbersList[idx];
+                var cellDOM = document.getElementById("cell-" + idx);
+                if (num !== 0 && cellDOM && cellDOM.classList.contains("marked")) {
+                    sum += num;
+                }
+            }
+
+            if(sum === 0) { alert("Please mark the called numbers in your line first!"); return; }
+
+            var calculatedPin = ((sum * 7) + prizeId + nameInput.length) % 9000 + 1000;
+            document.getElementById("token-txt").innerText = calculatedPin;
             document.getElementById("token-display-banner").style.display = "block";
-            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function generateFourDigitPin(prizeId) {
+            var sum = 0;
+            for (var idx = 0; idx < 27; idx++) {
+                var num = flatTicketNumbersList[idx];
+                var cellDOM = document.getElementById("cell-" + idx);
+                if (num !== 0 && cellDOM && cellDOM.classList.contains("marked")) {
+                    sum += num;
+                }
+            }
+
+            if(sum === 0) { alert("Please mark your marked numbers on the ticket grid first!"); return; }
+
+            var calculatedPin = ((sum * 7) + prizeId + nameInput.length) % 9000 + 1000;
+            document.getElementById("token-txt").innerText = calculatedPin;
+            document.getElementById("token-display-banner").style.display = "block";
         }
 
         function buildTicketGridStringMethod() {
@@ -95,11 +128,11 @@
                 }
             }
 
-            flatTicketNumbersList.forEach(function(val) {
+            flatTicketNumbersList.forEach(function(val, index) {
                 var cell = document.createElement("div");
                 cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
                 if(val !== 0) { 
-                    cell.innerText = val; 
+                    cell.innerText = val; cell.id = "cell-" + index;
                     cell.onclick = function() { this.classList.toggle("marked"); };
                 }
                 grid.appendChild(cell);
