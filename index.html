@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambola Host Dashboard</title>
+    <!-- Serverless wireless pipeline library wrapper -->
+    <script src="https://pubnub.com"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2, h3 { color: #2c3e50; }
@@ -25,7 +27,7 @@
 </head>
 <body>
 
-    <h1>🎙️ Tambola Local Host (Anti-Cheat Validation Active)</h1>
+    <h1>🎙️ Tambola Host Dashboard</h1>
     <div id="alert-box">⚠️ ALERT: Bogus Claim Blocked!</div>
 
     <div class="main-layout">
@@ -55,40 +57,51 @@
     <script>
         var calledNumbersList = [];
         var synth = window.speechSynthesis;
-        
-        // Local hardware local-area router communication pipeline network channel hooks
-        var networkChannel = new BroadcastChannel('tambola_local_wifi_sync_channel');
+        var pubnub = null;
+        var roomChannel = "tambola_reponame_live_channel";
 
         window.onload = function() {
             createHostGridBoard();
-            broadcastLedgerState();
+            initWirelessPipeline();
+        };
 
-            // Intercept real-time wireless claim triggers sent from local phones
-            networkChannel.onmessage = function(event) {
-                var packet = event.data;
-                if (packet && packet.type === "CLAIM_REQUEST") {
-                    var prizeKey = packet.prizeKey;
-                    var winnerName = packet.name;
-                    var ticketNumbers = packet.numbers.split("-").map(Number);
+        function initWirelessPipeline() {
+            // Using free usage cluster keys natively
+            pubnub = new PubNub({
+                publishKey: 'pub-c-49f2b826-6215-46b0-8f96-3b3b497cbbe0',
+                subscribeKey: 'sub-c-1123f1b4-2394-11ef-9fa0-02d50125da06',
+                userId: "host_screen_master"
+            });
 
-                    // Execute instant auto-validation check rules
-                    var isValid = validateClaim(prizeKey, ticketNumbers);
+            pubnub.subscribe({ channels: [roomChannel] });
 
-                    if (isValid) {
-                        var targetSpan = document.getElementById("win-" + prizeKey);
-                        if (targetSpan && targetSpan.innerText === "Unclaimed") {
-                            targetSpan.innerText = "🏆 " + winnerName;
-                            document.getElementById("ledger-" + prizeKey).classList.add("claimed");
-                            speakAnnouncement(winnerName + " verified for " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
-                            broadcastLedgerState();
+            pubnub.addListener({
+                message: function(event) {
+                    var packet = event.message;
+                    if (packet && packet.type === "CLAIM_REQUEST") {
+                        var prizeKey = packet.prizeKey;
+                        var winnerName = packet.name;
+                        var ticketNumbers = packet.numbers.split("-").map(Number);
+
+                        var isValid = validateClaim(prizeKey, ticketNumbers);
+
+                        if (isValid) {
+                            var targetSpan = document.getElementById("win-" + prizeKey);
+                            if (targetSpan && targetSpan.innerText === "Unclaimed") {
+                                targetSpan.innerText = "🏆 " + winnerName;
+                                document.getElementById("ledger-" + prizeKey).classList.add("claimed");
+                                speakAnnouncement(winnerName + " verified for " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
+                                broadcastLedgerState();
+                            }
+                        } else {
+                            triggerBogusClaimAlert(winnerName, prizeKey);
                         }
-                    } else {
-                        // Throw Cheat/Bogus Claim Error System Alerts
-                        triggerBogusClaimAlert(winnerName, prizeKey);
                     }
                 }
-            };
-        };
+            });
+            
+            setTimeout(broadcastLedgerState, 1000);
+        }
 
         function validateClaim(prizeKey, numbers) {
             var markedNumbers = numbers.filter(function(num) {
@@ -122,13 +135,16 @@
             box.style.display = "block";
             speakAnnouncement("Bogus claim by " + name + " rejected!");
             
-            // Broadcast the cheat lockout trigger back to the player's phone
-            networkChannel.postMessage({ type: "CLAIM_REJECTED", name: name, prizeKey: prize });
+            pubnub.publish({
+                channel: roomChannel,
+                message: { type: "CLAIM_REJECTED", name: name, prizeKey: prize }
+            });
             
             setTimeout(function() { box.style.display = "none"; }, 5000);
         }
 
         function broadcastLedgerState() {
+            if(!pubnub) return;
             var ledgerString = 
                 document.getElementById("win-early5").innerText + "|" +
                 document.getElementById("win-line1").innerText + "|" +
@@ -136,7 +152,10 @@
                 document.getElementById("win-line3").innerText + "|" +
                 document.getElementById("win-fullhouse").innerText;
             
-            networkChannel.postMessage({ type: "LEDGER_UPDATE", state: ledgerString });
+            pubnub.publish({
+                channel: roomChannel,
+                message: { type: "LEDGER_UPDATE", state: ledgerString }
+            });
         }
 
         function createHostGridBoard() {
@@ -171,7 +190,7 @@
 
         function resetGame() {
             if (confirm("Reset game?")) {
-                networkChannel.postMessage({ type: "RESET_GAME" });
+                pubnub.publish({ channel: roomChannel, message: { type: "RESET_GAME" } });
                 setTimeout(function() { window.location.reload(); }, 200);
             }
         }
