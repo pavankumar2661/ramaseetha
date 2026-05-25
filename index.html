@@ -148,7 +148,8 @@
 
         function syncWinnerToLocalStorage(prizeId, winnerName) {
             var currentState = localStorage.getItem("tambola_winners_sync") || "empty|empty|empty|empty|empty";
-            var parts = currentState.split("?")[0].split("|");
+            var cleanString = currentState.split("?")[0];
+            var parts = cleanString.split("|");
             if (parts[prizeId] === "empty") { parts[prizeId] = winnerName; }
             localStorage.setItem("tambola_winners_sync", parts.join("|") + "?" + Date.now());
         }
