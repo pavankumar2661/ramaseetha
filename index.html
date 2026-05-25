@@ -3,127 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Bingo Party Game</title>
-    <!-- Stable, robust local QR element compiler -->
-    <script src="https://cloudflare.com"></script>
+    <title>Tambola Party Game</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
         .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
         input { padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 60%; margin-right: 10px; }
-        
-        #game-screen, #player-ticket-screen { display: none; margin-top: 20px; }
+        #game-screen { display: none; margin-top: 20px; }
         #current-number { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 10px 0; height: 100px; }
-        
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
         .btn-danger { background: #e74c3c; } .btn-danger:hover { background: #c0392b; }
         .btn-secondary { background: #34495e; } .btn-secondary:hover { background: #2c3e50; }
-        
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
-        
-        .qr-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 15px 0; }
-        .qr-box { background: #f8fafc; padding: 15px; border: 1px dashed #cbd5e1; border-radius: 8px; display: inline-block; text-align: center; }
-        .qr-box div { display: flex; justify-content: center; margin-bottom: 10px; }
-        .qr-box p { margin: 5px 0 0 0; font-weight: bold; color: #34495e; text-transform: capitalize; }
-
-        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; background: #34495e; padding: 6px; border-radius: 6px; max-width: 500px; margin: 20px auto; }
-        .ticket-cell { background: #fff; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #2c3e50; border-radius: 4px; cursor: pointer; user-select: none; }
-        .ticket-cell.empty { background: #eaedf1; cursor: default; }
-        .ticket-cell.marked { background: #f1c40f; color: #000; font-size: 20px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
+        .tickets-section { flex: 2; min-width: 320px; display: flex; flex-direction: column; gap: 20px; }
+        .ticket-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-left: 6px solid #3498db; text-align: left; }
+        .ticket-card h3 { margin: 0 0 10px 0; color: #3498db; text-transform: capitalize; }
+        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; background: #34495e; padding: 5px; border-radius: 6px; }
+        .ticket-cell { background: #fff; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #2c3e50; border-radius: 4px; }
+        .ticket-cell.empty { background: #eaedf1; }
+        .ticket-cell.marked { background: #f1c40f; color: #000; font-size: 18px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
 
     <h1>🎰 Tambola Party 🎰</h1>
 
-    <!-- 1. SETUP SCREEN (Host workspace view) -->
-    <div id="setup-screen" class="panel" style="max-width: 600px; margin: 40px auto;">
-        <h2>Generate Phone Tickets</h2>
+    <!-- 1. SETUP SCREEN -->
+    <div id="setup-screen" class="panel" style="max-width: 500px; margin: 40px auto;">
+        <h2>Add Players</h2>
         <div style="margin-bottom: 15px;">
             <input type="text" id="player-name" placeholder="Enter player name...">
-            <button class="btn-secondary" onclick="addPlayerQR()">Generate QR Code</button>
+            <button class="btn-secondary" onclick="addPlayer()">Add Player</button>
         </div>
-        
-        <div id="qr-container" class="qr-section"></div>
-        
-        <button class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 20px;" onclick="startHostGame()">Start Calling Numbers</button>
+        <ol id="player-list" style="text-align: left; max-width: 300px; margin: 0 auto 20px auto; color: #475569; font-weight: bold;"></ol>
+        <button class="btn-primary" style="width: 100%; font-size: 18px;" onclick="startGame()">Start Game</button>
     </div>
 
-    <!-- 2. MAIN HOST BOARD SCREEN (Presenter display screen dashboard) -->
+    <!-- 2. ACTIVE GAME SCREEN -->
     <div id="game-screen" class="container">
+        <!-- Caller Board -->
         <div class="panel">
-            <h2>Numbers Board Panel</h2>
+            <h2>Numbers Board</h2>
             <div id="current-number">-</div>
             <button class="btn-primary" id="draw-btn" onclick="drawNumber()">Next Number</button>
             <button class="btn-danger" onclick="resetGame()">Reset Game</button>
             <div id="board"></div>
         </div>
-    </div>
-
-    <!-- 3. MOBILE SCREEN (Target terminal layout opened via camera scans) -->
-    <div id="player-ticket-screen" class="panel" style="max-width: 500px; margin: 20px auto;">
-        <h2 id="ticket-player-title">👤 My Ticket</h2>
-        <p style="color: #7f8c8d; font-size: 14px;">Tap numbers to cross them out as they are called out!</p>
-        <div id="mobile-ticket-grid" class="ticket-grid"></div>
+        <!-- Live Visual Player Tickets Section -->
+        <div class="tickets-section" id="tickets-container"></div>
     </div>
 
     <script>
+        var players = [];
         var calledNumbers = new Set();
 
-        // 1. Intercept URL parameter configurations on load hooks
-        window.onload = function() {
-            var urlParams = new URLSearchParams(window.location.search);
-            var nameParam = urlParams.get('name');
-            var ticketParam = urlParams.get('ticket');
-
-            if (nameParam && ticketParam) {
-                document.getElementById('setup-screen').style.display = 'none';
-                document.getElementById('player-ticket-screen').style.display = 'block';
-                document.getElementById('ticket-player-title').innerText = "👤 Ticket: " + decodeURIComponent(nameParam);
-                renderMobileTicket(ticketParam);
-            }
-        };
-
-        // 2. Generate custom QR outputs directly on screen canvas assets
-        function addPlayerQR() {
+        function addPlayer() {
             var input = document.getElementById("player-name");
             var name = input.value.trim();
-            if (!name) return;
-
-            var compressedTicket = generateFixedTicketString();
-            
-            // Generate link binding string pointing clean target path parameters
-            var cleanUrl = window.location.origin + window.location.pathname + 
-                           "?name=" + encodeURIComponent(name) + 
-                           "&ticket=" + compressedTicket;
-
-            var box = document.createElement("div");
-            box.className = "qr-box";
-            
-            var qrBlock = document.createElement("div");
-            box.appendChild(qrBlock);
-            
-            var label = document.createElement("p");
-            label.innerText = name;
-            box.appendChild(label);
-            
-            document.getElementById("qr-container").appendChild(box);
-
-            // Execute local engine compile rendering crisp image structures
-            new QRCode(qrBlock, { text: cleanUrl, width: 140, height: 140 });
-
-            input.value = "";
+            if (name && !players.includes(name)) {
+                players.push(name);
+                var li = document.createElement("li");
+                li.innerText = name;
+                document.getElementById("player-list").appendChild(li);
+                input.value = "";
+            }
             input.focus();
         }
 
-        function startHostGame() {
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'flex';
+        document.getElementById("player-name").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") addPlayer();
+        });
+
+        function startGame() {
+            if (players.length === 0) {
+                alert("Please add at least one player first!");
+                return;
+            }
+            document.getElementById("setup-screen").style.display = "none";
+            document.getElementById("game-screen").style.display = "flex";
             createMainBoard();
+            generateAllTickets();
         }
 
         function createMainBoard() {
@@ -138,67 +101,113 @@
             }
         }
 
-        function drawNumber() {
-            if (calledNumbers.size >= 90) {
-                alert("All 90 numbers have been called!");
-                return;
-            }
-            var rand;
-            do { rand = Math.floor(Math.random() * 90) + 1; } while (calledNumbers.has(rand));
-            calledNumbers.add(rand);
-            document.getElementById("current-number").innerText = rand;
-            document.getElementById("cell-" + rand).classList.add("called");
-        }
-
-        // 3. Mathematical pattern vector array generator (Zero bracket bugs)
-        function generateFixedTicketString() {
+        // 100% stable ticket array layout generator (Bypasses markdown rendering issues)
+        function generateTambolaTicket() {
+            // Build empty 3x9 grid map safely using constructor methods
             var ticket = new Array(3);
             for (var r = 0; r < 3; r++) {
                 ticket[r] = new Array(9).fill(0);
             }
 
-            // Safe explicit layout definition vectors
-            var p0 = new Array(1, 0, 1, 1, 0, 1, 0, 1, 0);
-            var p1 = new Array(0, 1, 0, 1, 1, 0, 1, 0, 1);
-            var p2 = new Array(1, 0, 1, 0, 0, 1, 1, 1, 0);
-            var patterns = new Array(p0, p1, p2);
-
+            // Create column pools and randomly pick 2 numbers per column to place down
             for (var col = 0; col < 9; col++) {
                 var min = col * 10 + 1;
                 var max = (col === 8) ? 90 : (col * 10 + 10);
                 
-                var pool = new Array();
-                for (var n = min; n <= max; n++) { pool.push(n); }
+                var pool = [];
+                for (var n = min; n <= max; n++) pool.push(n);
                 pool.sort(function() { return Math.random() - 0.5; });
 
-                var assigned = 0;
-                for (var row = 0; row < 3; row++) {
-                    if (patterns[row][col] === 1) {
-                        ticket[row][col] = pool[assigned];
-                        assigned++;
+                // Put values in row 0 and row 1 to establish baseline spread
+                ticket[0][col] = pool[0];
+                ticket[1][col] = pool[1];
+            }
+
+            // Trim down row 0 and row 1 randomly until they have exactly 5 values left
+            for (var row = 0; row < 2; row++) {
+                while (ticket[row].filter(function(x) { return x !== 0; }).length > 5) {
+                    var randCol = Math.floor(Math.random() * 9);
+                    ticket[row][randCol] = 0;
+                }
+            }
+
+            // Put remaining 5 numbers into row 2 across random columns to finish the 15-number sheet
+            var r2Count = 0;
+            var colIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(function() { return Math.random() - 0.5; });
+            
+            for (var i = 0; i < 9; i++) {
+                if (r2Count >= 5) break;
+                var targetCol = colIndices[i];
+                var tMin = targetCol * 10 + 1;
+                var tMax = (targetCol === 8) ? 90 : (targetCol * 10 + 10);
+                var pick = Math.floor(Math.random() * (tMax - tMin + 1)) + tMin;
+
+                if (ticket[0][targetCol] !== pick && ticket[1][targetCol] !== pick) {
+                    ticket[2][targetCol] = pick;
+                    r2Count++;
+                }
+            }
+
+            // Sort columns sequentially from top to bottom
+            for (var c = 0; c < 9; c++) {
+                var columnValues = [];
+                for (var r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) columnValues.push(ticket[r][c]);
+                }
+                columnValues.sort(function(a, b) { return a - b; });
+                
+                var vIdx = 0;
+                for (var r = 0; r < 3; r++) {
+                    if (ticket[r][c] !== 0) {
+                        ticket[r][c] = columnValues[vIdx++];
                     }
                 }
             }
 
-            // Run sort validation check top-to-bottom across vertical segments
-            for (var col = 0; col < 9; col++) {
-                var vals = new Array();
-                for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) vals.push(ticket[row][col]); }
-                vals.sort(function(a, b) { return a - b; });
-                var vIdx = 0;
-                for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) ticket[row][col] = vals[vIdx++]; }
-            }
-
-            var flat = new Array();
-            for(var r = 0; r < 3; r++) { for(var c = 0; c < 9; c++) { flat.push(ticket[r][c]); } }
-            return flat.join("-");
+            return ticket;
         }
 
-        // 4. Ticket cell parser loop for player viewports
-        function renderMobileTicket(ticketStr) {
-            var parts = ticketStr.split("-");
-            var grid = document.getElementById("mobile-ticket-grid");
-            grid.innerHTML = "";
+        function generateAllTickets() {
+            var container = document.getElementById("tickets-container");
+            container.innerHTML = "<h2>Active Player Tickets</h2>";
 
-            parts.forEach(function(valStr) {
-                var val = parseInt(valStr);
+            players.forEach(function(player, pIndex) {
+                var ticket = generateTambolaTicket();
+                var card = document.createElement("div");
+                card.className = "ticket-card";
+                card.innerHTML = "<h3>👤 " + player + "</h3>";
+
+                var grid = document.createElement("div");
+                grid.className = "ticket-grid";
+
+                for (var r = 0; r < 3; r++) {
+                    for (var c = 0; c < 9; c++) {
+                        var val = ticket[r][c];
+                        var cell = document.createElement("div");
+                        cell.className = val === 0 ? "ticket-cell empty" : "ticket-cell";
+                        if (val !== 0) {
+                            cell.innerText = val;
+                            cell.id = "t-" + pIndex + "-" + val;
+                        }
+                        grid.appendChild(cell);
+                    }
+                }
+                card.appendChild(grid);
+                container.appendChild(card);
+            });
+        }
+
+        function drawNumber() {
+            if (calledNumbers.size >= 90) {
+                alert("All 90 numbers have been called!");
+                document.getElementById("draw-btn").disabled = true;
+                return;
+            }
+
+            var rand;
+            do {
+                rand = Math.floor(Math.random() * 90) + 1;
+            } while (calledNumbers.has(rand));
+
+            calledNumbers.add(rand);
+            document.getElementById("current-number").innerText = rand;
