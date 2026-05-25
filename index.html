@@ -26,7 +26,7 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
-        <!-- Live Host Numbers Board -->
+        <!-- Master Board -->
         <div class="panel">
             <h2>Live Numbers Board</h2>
             <div id="current-number">-</div>
@@ -35,17 +35,15 @@
             <div id="board"></div>
         </div>
 
-        <!-- 4-Digit PIN Validation Panel -->
+        <!-- Validation Panel -->
         <div class="panel">
             <h2>🔐 Verify 4-Digit Prize PIN</h2>
             <p style="color: #7f8c8d; font-size: 14px;">Enter the player's name and their 4-digit claim PIN:</p>
-            
             <div>
-                <input type="text" id="chk-name" placeholder="Player Name" style="letter-spacing: normal; margin-bottom: 10px; font-size: 16px; width: 60%;"><br>
-                <input type="text" id="claim-pin" maxlength="4" placeholder="4-Digit PIN (e.g. 4815)"><br>
+                <input type="text" id="chk-name" placeholder="Player Name" style="letter-spacing:normal; margin-bottom:10px; font-size:16px; width:60%;"><br>
+                <input type="text" id="claim-pin" maxlength="4" placeholder="4-Digit PIN"><br>
                 <button class="btn-secondary" onclick="verifyPlayerPin()">Verify PIN Claim</button>
             </div>
-
             <h3>🏆 Verified Winners Log</h3>
             <div id="winner-log" class="log-box">No claims verified yet.</div>
         </div>
@@ -57,7 +55,6 @@
 
         window.onload = function() {
             createHostGridBoard();
-            // Clear past game winner state data maps upon startup
             localStorage.setItem("tambola_winners_sync", "empty|empty|empty|empty|empty");
         };
 
@@ -92,8 +89,8 @@
             var nameInput = document.getElementById("chk-name").value.trim();
             var pinInput = document.getElementById("claim-pin").value.trim();
             
-            if(!nameInput || !pinInput) { alert("Please complete both inputs!"); return; }
-            if(pinInput.length !== 4 || isNaN(pinInput)) { alert("PIN must be exactly 4 digits!"); return; }
+            if(!nameInput || !pinInput) { alert("Complete fields!"); return; }
+            if(pinInput.length !== 4) { alert("PIN must be 4 digits!"); return; }
 
             var playerTicket = getTicketNumbersByName(nameInput);
             var typeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
@@ -128,7 +125,7 @@
                     var r3 = playerTicket.slice(18, 27).filter(x => x !== 0);
                     isClaimValid = r3.every(n => calledNumbersList.includes(n));
                 } else if (matchedPrizeId === 4) {
-                    var fh = playerTicket.filter(x => x !== 0);
+                    var fh = playerTicket.filter(n => n !== 0);
                     isClaimValid = fh.every(n => calledNumbersList.includes(n));
                 }
                 detectedPrizeName = typeNames[matchedPrizeId];
@@ -139,28 +136,20 @@
                 if(log.innerText.includes("No claims")) log.innerHTML = "";
                 log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ PIN VERIFIED: " + nameInput + " won [ " + detectedPrizeName + " ]!</div>";
                 
-                // Track winner logs internally inside cross-window local state data strings
                 syncWinnerToLocalStorage(matchedPrizeId, nameInput);
 
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin verified for " + nameInput)); }
                 document.getElementById("claim-pin").value = "";
                 document.getElementById("chk-name").value = "";
             } else {
-                alert("❌ CLAIM REJECTED: Validation failed for " + (detectedPrizeName ? detectedPrizeName : "prize pattern"));
-                if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin rejected.")); }
+                alert("❌ INVALID PIN: Verification failed.");
             }
         }
 
         function syncWinnerToLocalStorage(prizeId, winnerName) {
             var currentState = localStorage.getItem("tambola_winners_sync") || "empty|empty|empty|empty|empty";
-            var parts = currentState.split("|");
-            
-            // Log winner name if that specific spot is unclaimed
-            if (parts[prizeId] === "empty") {
-                parts[prizeId] = winnerName;
-            }
-            
-            // Append explicit timestamp values to ensure storage event triggers fire across windows instantly
+            var parts = currentState.split("?")[0].split("|");
+            if (parts[prizeId] === "empty") { parts[prizeId] = winnerName; }
             localStorage.setItem("tambola_winners_sync", parts.join("|") + "?" + Date.now());
         }
 
@@ -171,7 +160,6 @@
             calledNumbersList.push(rand);
             document.getElementById("current-number").innerText = rand;
             document.getElementById("cell-" + rand).classList.add("called");
-            
             if (synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Number " + rand)); }
         }
 
@@ -190,3 +178,7 @@
                 localStorage.setItem("tambola_winners_sync", "RESET");
                 window.location.reload();
             }
+        }
+    </script>
+</body>
+</html>
