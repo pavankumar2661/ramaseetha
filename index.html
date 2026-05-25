@@ -7,8 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #room-code-display { font-size: 54px; font-weight: bold; color: #3498db; letter-spacing: 5px; margin: 15px 0; }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         #current-number { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 10px 0; height: 100px; }
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
@@ -18,8 +17,12 @@
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
         .audio-controls { margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #555; }
-        #player-lobby { margin-bottom: 20px; font-weight: bold; color: #2ecc71; font-size: 18px; }
-        .player-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px dashed #cbd5e1; }
+        
+        /* QR Code Output Layout */
+        .qr-roster { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
+        .qr-card { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; text-align: center; width: 140px; }
+        .qr-card img { width: 120px; height: 120px; display: block; margin: 0 auto 8px auto; }
+        .qr-card span { font-weight: bold; color: #2c3e50; text-transform: capitalize; font-size: 14px; display: block; }
     </style>
 </head>
 <body>
@@ -27,27 +30,25 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="container">
-        <!-- Lobby / Setup Screen -->
+        <!-- Setup Screen -->
         <div id="setup-section">
-            <h2>Game Code Room Manager</h2>
-            <div id="room-code-display">----</div>
-            <p style="color: #7f8c8d; font-size: 15px; margin-bottom: 25px;">Type a player name below to instantly generate their phone ticket window wrapper!</p>
+            <h2>Scan Tickets to Phones</h2>
+            <p style="color: #7f8c8d; font-size: 14px;">Type names to generate QR codes. Players scan with their phones to get their tickets!</p>
             
             <div style="margin-bottom: 20px;">
-                <input type="text" id="player-name" placeholder="Enter player name..." style="padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 60%; margin-right: 10px;">
-                <button class="btn-secondary" onclick="addNewPlayerTicketWindow()">Add Player</button>
+                <input type="text" id="player-name" placeholder="Enter player name..." style="padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 55%; margin-right: 10px;">
+                <button class="btn-secondary" onclick="generateQRForPlayerPhone()">Add Player</button>
             </div>
 
-            <h3>Active Roster:</h3>
-            <div id="player-lobby">No players added yet...</div>
+            <div id="qr-roster-box" class="qr-roster"></div>
             <button class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 25px;" onclick="startCallingGame()">Start Calling Game</button>
         </div>
 
-        <!-- Active Calling Board Screen -->
+        <!-- Active Board Screen -->
         <div id="caller-section" style="display: none;">
             <h2>Live Game Active</h2>
             <div class="audio-controls">
-                <label><input type="checkbox" id="mute-voice" checked> 🔊 Enable Voice Alerts</label>
+                <label><input type="checkbox" id="mute-voice" checked> 🔊 Enable Voice Announcements</label>
             </div>
             <div id="current-number">-</div>
             <button class="btn-primary" onclick="drawHostNumber()">Next Number</button>
@@ -57,22 +58,15 @@
     </div>
 
     <script>
-        var roomCode = Math.floor(1000 + Math.random() * 9000).toString();
         var calledNumbers = new Array();
-        var playersList = new Array();
-        var spawnWindows = new Array();
         var synth = window.speechSynthesis;
 
-        window.onload = function() {
-            document.getElementById("room-code-display").innerText = roomCode;
-        };
-
-        function addNewPlayerTicketWindow() {
+        function generateQRForPlayerPhone() {
             var input = document.getElementById("player-name");
             var name = input.value.trim();
             if (!name) return;
 
-            // Generate deterministic safe ticket configurations matrix string maps
+            // Generate clean, mathematical 3x9 ticket values mapping zero data transport blockers
             var flatParts = new Array();
             for (var cellIndex = 0; cellIndex < 27; cellIndex++) {
                 var r = Math.floor(cellIndex / 9); var c = cellIndex % 9;
@@ -92,42 +86,25 @@
             }
             var ticketString = flatParts.join("-");
 
-            // Build targets pointing down safely towards ticket module profiles
+            // Point link path down explicitly toward ticket.html deployment node
             var currentPath = window.location.pathname;
             var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-            var targetUrl = window.location.origin + directoryPath + "/ticket.html?name=" + encodeURIComponent(name) + "&data=" + ticketString + "&room=" + roomCode;
+            var targetPlayerUrl = window.location.origin + directoryPath + "/ticket.html?name=" + encodeURIComponent(name) + "&data=" + ticketString;
 
-            // Launch target frame natively simulating secondary mobile node viewpoints
-            var playerWin = window.open(targetUrl, "_blank", "width=420,height=600");
-            if(playerWin) {
-                spawnWindows.push(playerWin);
-            } else {
-                alert("Pop-up blocker detected! Please allow popups for this site so ticket frames can load smoothly.");
-            }
+            // Generate QR asset securely using the public Google Charts API
+            var googleQrUrl = "https://googleapis.com" + encodeURIComponent(targetPlayerUrl) + "&choe=UTF-8";
 
-            if(!playersList.includes(name)) {
-                playersList.push(name);
-                if(document.getElementById("player-lobby").innerText.includes("No players")) {
-                    document.getElementById("player-lobby").innerHTML = "";
-                }
-                var pRow = document.createElement("div");
-                pRow.className = "player-row";
-                pRow.innerHTML = "<span>👤 " + name + "</span><span style='color: #2ecc71; font-weight: bold;'>✓ Active Phone view Loaded</span>";
-                document.getElementById("player-lobby").appendChild(pRow);
-            }
+            // Print card container grid node to host dashboard layout
+            var card = document.createElement("div");
+            card.className = "qr-card";
+            card.innerHTML = "<img src='" + googleQrUrl + "' alt='Scan me'><span>👤 " + name + "</span>";
+            document.getElementById("qr-roster-box").appendChild(card);
 
             input.value = "";
             input.focus();
         }
 
         function startCallingGame() {
-            if(playersList.length === 0) { alert("Please add at least one player to begin!"); return; }
-            
-            // Broadcast live runtime activation triggers down across active ticket window tabs
-            spawnWindows.forEach(function(win) {
-                if(!win.closed) win.postMessage("START", "*");
-            });
-
             document.getElementById("setup-section").style.display = "none";
             document.getElementById("caller-section").style.display = "block";
             createHostGridBoard();
@@ -162,18 +139,10 @@
             document.getElementById("cell-" + rand).classList.add("called");
             
             speakNumber(rand);
-
-            // Transmit draw configurations straight to spawned targets using Native Tab Sync Channels
-            spawnWindows.forEach(function(win) {
-                if(!win.closed) win.postMessage("DRAW:" + calledNumbers.join("-"), "*");
-            });
         }
 
         function resetHostGame() {
-            if (confirm("Reset game loops?")) {
-                spawnWindows.forEach(function(win) { if(!win.closed) win.postMessage("RESET", "*"); });
-                window.location.reload();
-            }
+            if (confirm("Reset layout?")) { window.location.reload(); }
         }
     </script>
 </body>
