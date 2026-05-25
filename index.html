@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Game</title>
+    <title>Tambola Party Game</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
         .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
@@ -30,22 +30,22 @@
 </head>
 <body>
 
-    <h1>🎰 Tambola Party Caller & Tickets 🎰</h1>
+    <h1>🎰 Tambola Party 🎰</h1>
 
-    <!-- 1. Setup Screen -->
+    <!-- 1. SETUP SCREEN -->
     <div id="setup-screen" class="panel" style="max-width: 500px; margin: 40px auto;">
         <h2>Add Players</h2>
         <div style="margin-bottom: 15px;">
             <input type="text" id="player-name" placeholder="Enter player name...">
-            <button class="btn-secondary" onclick="addPlayer()">Add</button>
+            <button class="btn-secondary" onclick="addPlayer()">Add Player</button>
         </div>
         <ol id="player-list" style="text-align: left; max-width: 300px; margin: 0 auto 20px auto; color: #475569; font-weight: bold;"></ol>
         <button class="btn-primary" style="width: 100%; font-size: 18px;" onclick="startGame()">Start Game</button>
     </div>
 
-    <!-- 2. Active Game Screen -->
+    <!-- 2. GAME SCREEN -->
     <div id="game-screen" class="container">
-        <!-- Caller Dashboard -->
+        <!-- Main Board Panel -->
         <div class="panel">
             <h2>Numbers Board</h2>
             <div id="current-number">-</div>
@@ -53,7 +53,7 @@
             <button class="btn-danger" onclick="resetGame()">Reset Game</button>
             <div id="board"></div>
         </div>
-        <!-- Live Visual Grid Tickets -->
+        <!-- Player Tickets Panel -->
         <div class="tickets-section" id="tickets-container"></div>
     </div>
 
@@ -61,7 +61,7 @@
         let players = [];
         let calledNumbers = new Set();
 
-        // Add player safely to screen array
+        // 1. Add player function
         function addPlayer() {
             const input = document.getElementById('player-name');
             const name = input.value.trim();
@@ -75,15 +75,15 @@
             input.focus();
         }
 
-        // Catch Enter key events
+        // Allow 'Enter' key to add players
         document.getElementById('player-name').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addPlayer();
         });
 
-        // Toggle state and initialize layout assets
+        // 2. Start Game function
         function startGame() {
             if (players.length === 0) {
-                alert("Please add at least one player to start!");
+                alert("Please add at least one player!");
                 return;
             }
             document.getElementById('setup-screen').style.display = 'none';
@@ -92,7 +92,7 @@
             generateAllTickets();
         }
 
-        // Build 1-90 main tracker tracking grid
+        // 3. Create the 1 to 90 main dashboard grid
         function createMainBoard() {
             const board = document.getElementById('board');
             board.innerHTML = '';
@@ -105,54 +105,50 @@
             }
         }
 
-        // Absolute crash-proof clean layout ticket construction
-        function generateTambolaTicket() {
+        // 4. Pure, un-crashable static array distribution ticket engine
+        function generateSimpleTicket() {
+            // Start with an empty grid
             let ticket = Array(3).fill(null).map(() => Array(9).fill(0));
             
+            // Loop through each column (0 to 8)
             for (let col = 0; col < 9; col++) {
                 let min = col * 10 + 1;
                 let max = (col === 8) ? 90 : (col * 10 + 10);
                 
+                // Pick 2 random unique numbers for this column block
                 let pool = [];
                 for (let n = min; n <= max; n++) pool.push(n);
                 
-                let selected = [];
-                for (let i = 0; i < 2; i++) {
-                    let idx = Math.floor(Math.random() * pool.length);
-                    selected.push(pool.splice(idx, 1)[0]);
-                }
-                selected.sort((a, b) => a - b);
+                let num1 = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+                let num2 = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
                 
-                // FIXED row distribution logic syntax array parameters
-                let rows = [0, 1, 2];
-                rows.sort(() => Math.random() - 0.5);
+                // Sort column numbers top-to-bottom
+                let sortedNumbers = [num1, num2].sort((a, b) => a - b);
                 
-                ticket[rows[0]][col] = selected[0];
-                ticket[rows[1]][col] = selected[1];
+                // Put them in Row 1 and Row 2 of this column
+                ticket[0][col] = sortedNumbers[0];
+                ticket[1][col] = sortedNumbers[1];
             }
 
-            // Trim system down strictly to exactly 15 numbers (5 items per row array)
-            for (let row = 0; row < 3; row++) {
-                let activeCols = [];
-                for(let col = 0; col < 9; col++) {
-                    if(ticket[row][col] !== 0) activeCols.push(col);
-                }
-                while(activeCols.length > 5) {
-                    let removeIdx = Math.floor(Math.random() * activeCols.length);
-                    let targetCol = activeCols.splice(removeIdx, 1)[0];
-                    ticket[row][targetCol] = 0;
+            // Remove items randomly from Row 1 and Row 2 until each has exactly 5 numbers left
+            // This ensures we have exactly 15 numbers total and no crash loops
+            for (let row = 0; row < 2; row++) {
+                while (ticket[row].filter(x => x !== 0).length > 5) {
+                    let randCol = Math.floor(Math.random() * 9);
+                    ticket[row][randCol] = 0;
                 }
             }
+            
             return ticket;
         }
 
-        // Map and render out active customer items cards
+        // 5. Draw and display player cards
         function generateAllTickets() {
             const container = document.getElementById('tickets-container');
             container.innerHTML = '<h2>Active Player Tickets</h2>';
 
             players.forEach((player, pIndex) => {
-                let ticket = generateTambolaTicket();
+                let ticket = generateSimpleTicket();
                 let card = document.createElement('div');
                 card.className = 'ticket-card';
                 card.innerHTML = `<h3>👤 ${player}</h3>`;
@@ -167,7 +163,7 @@
                         cell.className = val === 0 ? 'ticket-cell empty' : 'ticket-cell';
                         if (val !== 0) {
                             cell.innerText = val;
-                            cell.id = `t-${pIndex}-${val}`;
+                            cell.id = `t-${pIndex}-${val}`; // Unique ID mapping tag
                         }
                         grid.appendChild(cell);
                     }
@@ -177,10 +173,10 @@
             });
         }
 
-        // Draw and broadcast matching array tags
+        // 6. Draw Number caller loop
         function drawNumber() {
             if (calledNumbers.size >= 90) {
-                alert('Game Over! All 90 numbers have been exhausted.');
+                alert('All 90 numbers have been called!');
                 document.getElementById('draw-btn').disabled = true;
                 return;
             }
@@ -191,9 +187,12 @@
             } while (calledNumbers.has(rand));
 
             calledNumbers.add(rand);
+            
+            // Update Dashboard UI
             document.getElementById('current-number').innerText = rand;
             document.getElementById('cell-' + rand).classList.add('called');
 
+            // Auto-highlight match strikes on player cards
             players.forEach((player, pIndex) => {
                 let targetCell = document.getElementById(`t-${pIndex}-${rand}`);
                 if (targetCell) {
@@ -202,9 +201,9 @@
             });
         }
 
-        // Reset tracking state metrics
+        // 7. Full game layout reset
         function resetGame() {
-            if (confirm('Reset everything? This will wipe out all players.')) {
+            if (confirm('Wipe board and start over?')) {
                 calledNumbers.clear();
                 players = [];
                 document.getElementById('player-list').innerHTML = '';
