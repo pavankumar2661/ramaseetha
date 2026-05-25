@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Party Game</title>
+    <title>Tambola Bingo Game</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
@@ -45,7 +45,7 @@
 
     <!-- 2. GAME SCREEN -->
     <div id="game-screen" class="container">
-        <!-- Main Board Panel -->
+        <!-- Numbers Board -->
         <div class="panel">
             <h2>Numbers Board</h2>
             <div id="current-number">-</div>
@@ -53,7 +53,7 @@
             <button class="btn-danger" onclick="resetGame()">Reset Game</button>
             <div id="board"></div>
         </div>
-        <!-- Player Tickets Panel -->
+        <!-- Tickets -->
         <div class="tickets-section" id="tickets-container"></div>
     </div>
 
@@ -61,7 +61,6 @@
         let players = [];
         let calledNumbers = new Set();
 
-        // 1. Add player function
         function addPlayer() {
             const input = document.getElementById('player-name');
             const name = input.value.trim();
@@ -75,12 +74,10 @@
             input.focus();
         }
 
-        // Allow 'Enter' key to add players
         document.getElementById('player-name').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addPlayer();
         });
 
-        // 2. Start Game function
         function startGame() {
             if (players.length === 0) {
                 alert("Please add at least one player!");
@@ -92,7 +89,6 @@
             generateAllTickets();
         }
 
-        // 3. Create the 1 to 90 main dashboard grid
         function createMainBoard() {
             const board = document.getElementById('board');
             board.innerHTML = '';
@@ -105,44 +101,73 @@
             }
         }
 
-        // 4. Pure, un-crashable static array distribution ticket engine
         function generateSimpleTicket() {
-            // Start with an empty grid
-            let ticket = Array(3).fill(null).map(() => Array(9).fill(0));
+            // Initializing structured safe nested arrays directly
+            let ticket = [
+                [0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0]
+            ];
             
-            // Loop through each column (0 to 8)
             for (let col = 0; col < 9; col++) {
                 let min = col * 10 + 1;
                 let max = (col === 8) ? 90 : (col * 10 + 10);
                 
-                // Pick 2 random unique numbers for this column block
-                let pool = [];
-                for (let n = min; n <= max; n++) pool.push(n);
+                let colPool = [];
+                for (let n = min; n <= max; n++) {
+                    colPool.push(n);
+                }
                 
-                let num1 = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-                let num2 = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+                colPool.sort(() => Math.random() - 0.5);
                 
-                // Sort column numbers top-to-bottom
-                let sortedNumbers = [num1, num2].sort((a, b) => a - b);
-                
-                // Put them in Row 1 and Row 2 of this column
-                ticket[0][col] = sortedNumbers[0];
-                ticket[1][col] = sortedNumbers[1];
+                ticket[0][col] = colPool[0];
+                ticket[1][col] = colPool[1];
             }
 
-            // Remove items randomly from Row 1 and Row 2 until each has exactly 5 numbers left
-            // This ensures we have exactly 15 numbers total and no crash loops
-            for (let row = 0; row < 2; row++) {
-                while (ticket[row].filter(x => x !== 0).length > 5) {
-                    let randCol = Math.floor(Math.random() * 9);
-                    ticket[row][randCol] = 0;
+            while (ticket[0].filter(x => x !== 0).length > 5) {
+                let idx = Math.floor(Math.random() * 9);
+                ticket[0][idx] = 0;
+            }
+
+            while (ticket[1].filter(x => x !== 0).length > 5) {
+                let idx = Math.floor(Math.random() * 9);
+                ticket[1][idx] = 0;
+            }
+
+            let r2Placed = 0;
+            let colOrder = [0,1,2,3,4,5,6,7,8].sort(() => Math.random() - 0.5);
+            
+            for (let i = 0; i < 9; i++) {
+                if (r2Placed >= 5) break;
+                let col = colOrder[i];
+                let min = col * 10 + 1;
+                let max = (col === 8) ? 90 : (col * 10 + 10);
+                let checkNum = Math.floor(Math.random() * (max - min + 1)) + min;
+                
+                if (ticket[0][col] !== checkNum && ticket[1][col] !== checkNum) {
+                    ticket[2][col] = checkNum;
+                    r2Placed++;
+                }
+            }
+
+            for (let col = 0; col < 9; col++) {
+                let vals = [];
+                for (let row = 0; row < 3; row++) {
+                    if (ticket[row][col] !== 0) vals.push(ticket[row][col]);
+                }
+                vals.sort((a, b) => a - b);
+                
+                let vIdx = 0;
+                for (let row = 0; row < 3; row++) {
+                    if (ticket[row][col] !== 0) {
+                        ticket[row][col] = vals[vIdx++];
+                    }
                 }
             }
             
             return ticket;
         }
 
-        // 5. Draw and display player cards
         function generateAllTickets() {
             const container = document.getElementById('tickets-container');
             container.innerHTML = '<h2>Active Player Tickets</h2>';
@@ -163,7 +188,7 @@
                         cell.className = val === 0 ? 'ticket-cell empty' : 'ticket-cell';
                         if (val !== 0) {
                             cell.innerText = val;
-                            cell.id = `t-${pIndex}-${val}`; // Unique ID mapping tag
+                            cell.id = `t-${pIndex}-${val}`;
                         }
                         grid.appendChild(cell);
                     }
@@ -173,7 +198,6 @@
             });
         }
 
-        // 6. Draw Number caller loop
         function drawNumber() {
             if (calledNumbers.size >= 90) {
                 alert('All 90 numbers have been called!');
@@ -187,12 +211,9 @@
             } while (calledNumbers.has(rand));
 
             calledNumbers.add(rand);
-            
-            // Update Dashboard UI
             document.getElementById('current-number').innerText = rand;
             document.getElementById('cell-' + rand).classList.add('called');
 
-            // Auto-highlight match strikes on player cards
             players.forEach((player, pIndex) => {
                 let targetCell = document.getElementById(`t-${pIndex}-${rand}`);
                 if (targetCell) {
@@ -201,11 +222,7 @@
             });
         }
 
-        // 7. Full game layout reset
         function resetGame() {
-            if (confirm('Wipe board and start over?')) {
+            if (confirm('Reset game and clear all players?')) {
                 calledNumbers.clear();
                 players = [];
-                document.getElementById('player-list').innerHTML = '';
-                document.getElementById('current-number').innerText = '-';
-                document.getElementById('draw-btn').disabled = false;
