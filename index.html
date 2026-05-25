@@ -26,7 +26,7 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
-        <!-- Master Board -->
+        <!-- Live Host Numbers Board -->
         <div class="panel">
             <h2>Live Numbers Board</h2>
             <div id="current-number">-</div>
@@ -35,15 +35,17 @@
             <div id="board"></div>
         </div>
 
-        <!-- Validation Panel -->
+        <!-- 4-Digit PIN Validation Panel -->
         <div class="panel">
             <h2>🔐 Verify 4-Digit Prize PIN</h2>
             <p style="color: #7f8c8d; font-size: 14px;">Enter the player's name and their 4-digit claim PIN:</p>
+            
             <div>
-                <input type="text" id="chk-name" placeholder="Player Name" style="letter-spacing:normal; margin-bottom:10px; font-size:16px; width:60%;"><br>
-                <input type="text" id="claim-pin" maxlength="4" placeholder="4-Digit PIN"><br>
+                <input type="text" id="chk-name" placeholder="Player Name" style="letter-spacing: normal; margin-bottom: 10px; font-size: 16px; width: 60%;"><br>
+                <input type="text" id="claim-pin" maxlength="4" placeholder="4-Digit PIN (e.g. 4815)"><br>
                 <button class="btn-secondary" onclick="verifyPlayerPin()">Verify PIN Claim</button>
             </div>
+
             <h3>🏆 Verified Winners Log</h3>
             <div id="winner-log" class="log-box">No claims verified yet.</div>
         </div>
@@ -52,21 +54,49 @@
     <script>
         var calledNumbersList = [];
         var synth = window.speechSynthesis;
-        var staticTicket = [4,0,25,32,0,55,0,76,0,0,16,0,38,44,0,67,0,89,5,0,28,0,0,59,68,78,0];
 
         window.onload = function() {
             createHostGridBoard();
-            localStorage.setItem("tambola_winners_sync", "empty|empty|empty|empty|empty");
+            localStorage.setItem("tambola_winners_sync", "empty,empty,empty,empty,empty");
         };
+
+        function generateHashSeed(str) {
+            var hash = 0;
+            for (var i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+            return Math.abs(hash);
+        }
+
+        function getTicketNumbersByName(name) {
+            var seed = generateHashSeed(name.toLowerCase());
+            var ticketList = [];
+            var layoutPattern = "101101010010110101101001110";
+
+            for (var idx = 0; idx < 27; idx++) {
+                var c = idx % 9;
+                if (layoutPattern.charAt(idx) === "1") {
+                    var minVal = (c * 10) + 1;
+                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
+                    seed = (seed * 9301 + 49297) % 233280;
+                    var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));
+                    if (calculatedNum > maxVal) calculatedNum = maxVal;
+                    ticketList.push(calculatedNum);
+                } else {
+                    ticketList.push(0);
+                }
+            }
+            return ticketList;
+        }
 
         function verifyPlayerPin() {
             var nameInput = document.getElementById("chk-name").value.trim();
             var pinInput = document.getElementById("claim-pin").value.trim();
             
-            if(!nameInput || !pinInput) { alert("Complete fields!"); return; }
-            if(pinInput.length !== 4) { alert("PIN must be 4 digits!"); return; }
+            if(!nameInput || !pinInput) { alert("Please complete both inputs!"); return; }
+            if(pinInput.length !== 4 || isNaN(pinInput)) { alert("PIN must be exactly 4 digits!"); return; }
 
+            var playerTicket = getTicketNumbersByName(nameInput);
             var typeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
+            
             var isClaimValid = false;
             var detectedPrizeName = "";
             var matchedPrizeId = -1;
@@ -76,7 +106,7 @@
             for(var i=0; i < cleanNameKey.length; i++) { nameStringWeight += cleanNameKey.charCodeAt(i); }
 
             for (var prizeId = 0; prizeId < 5; prizeId++) {
-                var expectedPinCalculated = 1000 + ((nameStringWeight * 3 + prizeId * 17) % 9000);
+                var expectedPinCalculated = ((nameStringWeight * 3) + (prizeId * 17)) % 9000 + 1000;
                 if (expectedPinCalculated.toString() === pinInput) {
                     matchedPrizeId = prizeId;
                     break;
@@ -85,19 +115,19 @@
 
             if (matchedPrizeId !== -1) {
                 if (matchedPrizeId === 0) {
-                    var markedCount = staticTicket.filter(n => n !== 0 && calledNumbersList.includes(n)).length;
+                    var markedCount = playerTicket.filter(n => n !== 0 && calledNumbersList.includes(n)).length;
                     if (markedCount >= 5) isClaimValid = true;
                 } else if (matchedPrizeId === 1) {
-                    var r1 = staticTicket.slice(0, 9).filter(x => x !== 0);
+                    var r1 = playerTicket.slice(0, 9).filter(x => x !== 0);
                     isClaimValid = r1.every(n => calledNumbersList.includes(n));
                 } else if (matchedPrizeId === 2) {
-                    var r2 = staticTicket.slice(9, 18).filter(x => x !== 0);
+                    var r2 = playerTicket.slice(9, 18).filter(x => x !== 0);
                     isClaimValid = r2.every(n => calledNumbersList.includes(n));
                 } else if (matchedPrizeId === 3) {
-                    var r3 = staticTicket.slice(18, 27).filter(x => x !== 0);
+                    var r3 = playerTicket.slice(18, 27).filter(x => x !== 0);
                     isClaimValid = r3.every(n => calledNumbersList.includes(n));
                 } else if (matchedPrizeId === 4) {
-                    var fh = staticTicket.filter(n => n !== 0);
+                    var fh = playerTicket.filter(x => x !== 0);
                     isClaimValid = fh.every(n => calledNumbersList.includes(n));
                 }
                 detectedPrizeName = typeNames[matchedPrizeId];
@@ -108,17 +138,27 @@
                 if(log.innerText.includes("No claims")) log.innerHTML = "";
                 log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ PIN VERIFIED: " + nameInput + " won [ " + detectedPrizeName + " ]!</div>";
                 
-                var currentState = localStorage.getItem("tambola_winners_sync") || "empty|empty|empty|empty|empty";
-                var parts = currentState.split("?")[0].split("|");
-                if (parts[matchedPrizeId] === "empty") { parts[matchedPrizeId] = nameInput; }
-                localStorage.setItem("tambola_winners_sync", parts.join("|") + "?" + Date.now());
+                syncWinnerToLocalStorage(matchedPrizeId, nameInput);
 
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin verified for " + nameInput)); }
                 document.getElementById("claim-pin").value = "";
                 document.getElementById("chk-name").value = "";
             } else {
-                alert("❌ INVALID PIN: Verification failed.");
+                alert("❌ INVALID PIN: Either this PIN is incorrect, or the required pattern numbers have not been called yet!");
+                if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin rejected.")); }
             }
+        }
+
+        function syncWinnerToLocalStorage(prizeId, winnerName) {
+            var currentState = localStorage.getItem("tambola_winners_sync") || "empty,empty,empty,empty,empty";
+            var cleanString = currentState.split("?");
+            var parts = cleanString[0].split(",");
+            
+            if (parts[prizeId] === "empty") {
+                parts[prizeId] = winnerName;
+            }
+            
+            localStorage.setItem("tambola_winners_sync", parts.join(",") + "?" + Date.now());
         }
 
         function drawHostNumber() {
@@ -128,6 +168,7 @@
             calledNumbersList.push(rand);
             document.getElementById("current-number").innerText = rand;
             document.getElementById("cell-" + rand).classList.add("called");
+            
             if (synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Number " + rand)); }
         }
 
