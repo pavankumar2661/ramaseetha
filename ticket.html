@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Personal Ticket</title>
+    <!-- Serverless wireless pipeline library wrapper -->
+    <script src="https://pubnub.com"></script>
     <style>
         :root { --primary-bg: #3498db; --grid-border: #34495e; --mark-color: #f1c40f; }
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; }
@@ -53,7 +55,7 @@
             <div class="prize-row"><span>Early Five</span> <button class="claim-btn" id="btn-early5" onclick="sendClaim('early5')">Claim</button><span class="winner-banner" id="pwin-early5" style="display:none;"></span></div>
             <div class="prize-row"><span>First Line</span> <button class="claim-btn" id="btn-line1" onclick="sendClaim('line1')">Claim</button><span class="winner-banner" id="pwin-line1" style="display:none;"></span></div>
             <div class="prize-row"><span>Second Line</span> <button class="claim-btn" id="btn-line2" onclick="sendClaim('line2')">Claim</button><span class="winner-banner" id="pwin-line2" style="display:none;"></span></div>
-            <div class="prize-row) "><span>Third Line</span> <button class="claim-btn" id="btn-line3" onclick="sendClaim('line3')">Claim</button><span class="winner-banner" id="pwin-line3" style="display:none;"></span></div>
+            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" id="btn-line3" onclick="sendClaim('line3')">Claim</button><span class="winner-banner" id="pwin-line3" style="display:none;"></span></div>
             <div class="prize-row"><span>Full House</span> <button class="claim-btn" id="btn-fullhouse" style="background:#e74c3c;" onclick="sendClaim('fullhouse')">Claim</button><span class="winner-banner" id="pwin-fullhouse" style="display:none;"></span></div>
         </div>
 
@@ -66,7 +68,8 @@
     <script>
         var playerName = "";
         var generatedFlatString = ""; 
-        var networkChannel = new BroadcastChannel('tambola_local_wifi_sync_channel');
+        var pubnub = null;
+        var roomChannel = "tambola_reponame_live_channel";
 
         function generateHashSeed(str) {
             var hash = 0;
@@ -83,20 +86,32 @@
             document.getElementById("display-title").innerText = "👤 Ticket: " + playerName;
 
             buildTicketGridDeterministic();
-            
-            // Listen to messages broadcast from host screen
-            networkChannel.onmessage = function(event) {
-                var packet = event.data;
-                if (packet.type === "LEDGER_UPDATE") {
-                    syncClaimsUI(packet.state);
+            initWirelessPipeline();
+        }
+
+        function initWirelessPipeline() {
+            pubnub = new PubNub({
+                publishKey: 'pub-c-49f2b826-6215-46b0-8f96-3b3b497cbbe0',
+                subscribeKey: 'sub-c-1123f1b4-2394-11ef-9fa0-02d50125da06',
+                userId: "player_" + playerName.toLowerCase().replace(/[^a-z0-9]/g, "")
+            });
+
+            pubnub.subscribe({ channels: [roomChannel] });
+
+            pubnub.addListener({
+                message: function(event) {
+                    var packet = event.message;
+                    if (packet.type === "LEDGER_UPDATE") {
+                        syncClaimsUI(packet.state);
+                    }
+                    if (packet.type === "RESET_GAME") {
+                        window.location.reload();
+                    }
+                    if (packet.type === "CLAIM_REJECTED" && packet.name === playerName) {
+                        applyBogusLockPenalty();
+                    }
                 }
-                if (packet.type === "RESET_GAME") {
-                    window.location.reload();
-                }
-                if (packet.type === "CLAIM_REJECTED" && packet.name === playerName) {
-                    applyBogusLockPenalty();
-                }
-            };
+            });
         }
 
         function syncClaimsUI(ledgerData) {
@@ -124,11 +139,15 @@
         }
 
         function sendClaim(prizeKey) {
-            networkChannel.postMessage({
-                type: "CLAIM_REQUEST",
-                prizeKey: prizeKey,
-                name: playerName,
-                numbers: generatedFlatString
+            if(!pubnub) return;
+            pubnub.publish({
+                channel: roomChannel,
+                message: {
+                    type: "CLAIM_REQUEST",
+                    prizeKey: prizeKey,
+                    name: playerName,
+                    numbers: generatedFlatString
+                }
             });
         }
 
@@ -140,7 +159,7 @@
             setTimeout(function() {
                 document.getElementById("penalty-text").style.display = "none";
                 buttons.forEach(btn => btn.disabled = false);
-            }, 10000); // 10-second cheat penalty delay lock
+            }, 10000); 
         }
 
         function buildTicketGridDeterministic() {
@@ -156,18 +175,3 @@
                 var cellType = layoutPattern.charAt(idx);
 
                 if (cellType === "1") {
-                    var minVal = (c * 10) + 1;
-                    var deterministicNumber = minVal + (seed % 10);
-                    if (deterministicNumber > (c * 10 + 10)) {
-                        deterministicNumber = (c * 10 + 5);
-                    }
-                    temporaryFlatParts.push(deterministicNumber);
-                    seed = (seed + 7) * 3;
-                } else {
-                    temporaryFlatParts.push(0);
-                }
-            }
-            
-            generatedFlatString = temporaryFlatParts.join("-");
-
-            temporaryFlatParts.forEach(function(val) {
