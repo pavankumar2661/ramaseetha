@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Party Game</title>
+    <title>Tambola Bingo Party Game</title>
+    <!-- Stable, robust local QR element compiler -->
+    <script src="https://cloudflare.com"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
@@ -25,7 +27,7 @@
         
         .qr-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 15px 0; }
         .qr-box { background: #f8fafc; padding: 15px; border: 1px dashed #cbd5e1; border-radius: 8px; display: inline-block; text-align: center; }
-        .qr-box img { width: 150px; height: 150px; display: block; margin: 0 auto 10px auto; background: #fff; }
+        .qr-box div { display: flex; justify-content: center; margin-bottom: 10px; }
         .qr-box p { margin: 5px 0 0 0; font-weight: bold; color: #34495e; text-transform: capitalize; }
 
         .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; background: #34495e; padding: 6px; border-radius: 6px; max-width: 500px; margin: 20px auto; }
@@ -38,7 +40,7 @@
 
     <h1>🎰 Tambola Party 🎰</h1>
 
-    <!-- 1. SETUP SCREEN (Host panel view) -->
+    <!-- 1. SETUP SCREEN (Host workspace view) -->
     <div id="setup-screen" class="panel" style="max-width: 600px; margin: 40px auto;">
         <h2>Generate Phone Tickets</h2>
         <div style="margin-bottom: 15px;">
@@ -51,7 +53,7 @@
         <button class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 20px;" onclick="startHostGame()">Start Calling Numbers</button>
     </div>
 
-    <!-- 2. MAIN HOST BOARD SCREEN (TV / Laptop tracking dashboard) -->
+    <!-- 2. MAIN HOST BOARD SCREEN (Presenter display screen dashboard) -->
     <div id="game-screen" class="container">
         <div class="panel">
             <h2>Numbers Board Panel</h2>
@@ -62,17 +64,17 @@
         </div>
     </div>
 
-    <!-- 3. MOBILE SCREEN (Seen only by users scanning from their phone) -->
+    <!-- 3. MOBILE SCREEN (Target terminal layout opened via camera scans) -->
     <div id="player-ticket-screen" class="panel" style="max-width: 500px; margin: 20px auto;">
         <h2 id="ticket-player-title">👤 My Ticket</h2>
-        <p style="color: #7f8c8d; font-size: 14px;">Tap numbers to mark them as they are called out!</p>
+        <p style="color: #7f8c8d; font-size: 14px;">Tap numbers to cross them out as they are called out!</p>
         <div id="mobile-ticket-grid" class="ticket-grid"></div>
     </div>
 
     <script>
         var calledNumbers = new Set();
 
-        // 1. Core initialization checking link parameters map
+        // 1. Intercept URL parameter configurations on load hooks
         window.onload = function() {
             var urlParams = new URLSearchParams(window.location.search);
             var nameParam = urlParams.get('name');
@@ -86,7 +88,7 @@
             }
         };
 
-        // 2. Generate layout metrics and build Image Tag QR Codes
+        // 2. Generate custom QR outputs directly on screen canvas assets
         function addPlayerQR() {
             var input = document.getElementById("player-name");
             var name = input.value.trim();
@@ -94,28 +96,25 @@
 
             var compressedTicket = generateFixedTicketString();
             
-            // Build direct target URL pointing safely back to deployment link
+            // Generate link binding string pointing clean target path parameters
             var cleanUrl = window.location.origin + window.location.pathname + 
                            "?name=" + encodeURIComponent(name) + 
                            "&ticket=" + compressedTicket;
 
-            // Call standard secure Google Infographics QR Chart API natively
-            var qrApiUrl = "https://googleapis.com" + encodeURIComponent(cleanUrl) + "&choe=UTF-8";
-
-            // Render output card block mapping layout nodes
             var box = document.createElement("div");
             box.className = "qr-box";
             
-            var qrImg = document.createElement("img");
-            qrImg.src = qrApiUrl;
-            qrImg.alt = "Scan for phone ticket";
-            box.appendChild(qrImg);
+            var qrBlock = document.createElement("div");
+            box.appendChild(qrBlock);
             
             var label = document.createElement("p");
             label.innerText = name;
             box.appendChild(label);
             
             document.getElementById("qr-container").appendChild(box);
+
+            // Execute local engine compile rendering crisp image structures
+            new QRCode(qrBlock, { text: cleanUrl, width: 140, height: 140 });
 
             input.value = "";
             input.focus();
@@ -151,24 +150,24 @@
             document.getElementById("cell-" + rand).classList.add("called");
         }
 
-        // 3. Bulletproof ticket matrix builder mapping strings directly
+        // 3. Mathematical pattern vector array generator (Zero bracket bugs)
         function generateFixedTicketString() {
-            var r0 = [0,0,0,0,0,0,0,0,0];
-            var r1 = [0,0,0,0,0,0,0,0,0];
-            var r2 = [0,0,0,0,0,0,0,0,0];
-            var ticket = [r0, r1, r2];
+            var ticket = new Array(3);
+            for (var r = 0; r < 3; r++) {
+                ticket[r] = new Array(9).fill(0);
+            }
 
-            var patterns = [
-                [1, 0, 1, 0, 1, 1, 0, 1, 0],
-                [0, 1, 0, 1, 0, 1, 1, 0, 1],
-                [1, 1, 1, 0, 1, 0, 0, 1, 0]
-            ];
+            // Safe explicit layout definition vectors
+            var p0 = new Array(1, 0, 1, 1, 0, 1, 0, 1, 0);
+            var p1 = new Array(0, 1, 0, 1, 1, 0, 1, 0, 1);
+            var p2 = new Array(1, 0, 1, 0, 0, 1, 1, 1, 0);
+            var patterns = new Array(p0, p1, p2);
 
             for (var col = 0; col < 9; col++) {
                 var min = col * 10 + 1;
                 var max = (col === 8) ? 90 : (col * 10 + 10);
                 
-                var pool = [];
+                var pool = new Array();
                 for (var n = min; n <= max; n++) { pool.push(n); }
                 pool.sort(function() { return Math.random() - 0.5; });
 
@@ -181,20 +180,21 @@
                 }
             }
 
+            // Run sort validation check top-to-bottom across vertical segments
             for (var col = 0; col < 9; col++) {
-                var vals = [];
+                var vals = new Array();
                 for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) vals.push(ticket[row][col]); }
                 vals.sort(function(a, b) { return a - b; });
                 var vIdx = 0;
                 for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) ticket[row][col] = vals[vIdx++]; }
             }
 
-            var flat = [];
-            for(var r=0; r<3; r++) { for(var c=0; c<9; c++) { flat.push(ticket[r][c]); } }
+            var flat = new Array();
+            for(var r = 0; r < 3; r++) { for(var c = 0; c < 9; c++) { flat.push(ticket[r][c]); } }
             return flat.join("-");
         }
 
-        // 4. Client phone ticket layout rendering loop
+        // 4. Ticket cell parser loop for player viewports
         function renderMobileTicket(ticketStr) {
             var parts = ticketStr.split("-");
             var grid = document.getElementById("mobile-ticket-grid");
@@ -202,6 +202,3 @@
 
             parts.forEach(function(valStr) {
                 var val = parseInt(valStr);
-                var cell = document.createElement("div");
-                cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
-                
