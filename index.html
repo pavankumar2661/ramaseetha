@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambola Host Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
         .main-layout { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1100px; margin: 0 auto; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex: 1; min-width: 320px; }
@@ -17,7 +17,7 @@
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
-        input { padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 60%; text-align: center; margin-bottom: 10px; }
+        input { padding: 12px; font-size: 18px; border: 2px solid #cbd5e1; border-radius: 5px; width: 50%; text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 2px; }
         .log-box { text-align: left; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; max-width: 450px; margin: 20px auto; min-height: 100px; }
     </style>
 </head>
@@ -26,6 +26,7 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
+        <!-- Live Host Numbers Board -->
         <div class="panel">
             <h2>Live Numbers Board</h2>
             <div id="current-number">-</div>
@@ -34,13 +35,17 @@
             <div id="board"></div>
         </div>
 
+        <!-- 4-Digit PIN Validation Panel -->
         <div class="panel">
-            <h2>🔐 Achievement Claim Verifier</h2>
-            <p style="color: #7f8c8d; font-size: 14px;">Enter the verification string called out by the player:</p>
+            <h2>🔐 Verify 4-Digit Prize PIN</h2>
+            <p style="color: #7f8c8d; font-size: 14px;">Enter the player's name and their 4-digit claim PIN:</p>
+            
             <div>
-                <input type="text" id="claim-token" placeholder="e.g. L2-PAVAN-0-12-0..."><br>
-                <button class="btn-secondary" onclick="verifyTicketClaim()">Verify Pattern Claim</button>
+                <input type="text" id="chk-name" placeholder="Player Name" style="letter-spacing: normal; margin-bottom: 10px; font-size: 16px; width: 60%;"><br>
+                <input type="text" id="claim-pin" maxlength="4" placeholder="4-Digit PIN (e.g. 4815)"><br>
+                <button class="btn-secondary" onclick="verifyPlayerPin()">Verify PIN Claim</button>
             </div>
+
             <h3>🏆 Verified Winners Log</h3>
             <div id="winner-log" class="log-box">No claims verified yet.</div>
         </div>
@@ -50,74 +55,117 @@
         var calledNumbersList = [];
         var synth = window.speechSynthesis;
 
-        function drawHostNumber() {
-            if (calledNumbersList.length >= 90) { alert("All numbers called!"); return; }
-            var rand = 0;
-            do { rand = Math.floor(Math.random() * 90) + 1; } while (calledNumbersList.includes(rand));
-
-            calledNumbersList.push(rand);
-            document.getElementById("current-number").innerText = rand;
-            document.getElementById("cell-" + rand).classList.add("called");
-            
-            if (synth) {
-                synth.cancel();
-                synth.speak(new SpeechSynthesisUtterance("Number " + rand));
-            }
+        function generateHashSeed(str) {
+            var hash = 0;
+            for (var i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+            return Math.abs(hash);
         }
 
-        function verifyTicketClaim() {
-            var tokenInput = document.getElementById("claim-token");
-            var rawToken = tokenInput.value.trim().toUpperCase();
-            if(!rawToken) return;
+        // Reconstruct ticket numbers identically from name string seed parameters
+        function getTicketNumbersByName(name) {
+            var seed = generateHashSeed(name.toLowerCase());
+            var ticketList = [];
+            var layoutPattern = "101101010010110101101001110";
 
-            var parts = rawToken.split("-");
-            var claimType = parts[0];  
-            var playerWinner = parts[1]; 
+            for (var idx = 0; idx < 27; idx++) {
+                var c = idx % 9;
+                if (layoutPattern.charAt(idx) === "1") {
+                    var minVal = (c * 10) + 1;
+                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
+                    seed = (seed * 9301 + 49297) % 233280;
+                    var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));
+                    if (calculatedNum > maxVal) calculatedNum = maxVal;
+                    ticketList.push(calculatedNum);
+                } else {
+                    ticketList.push(0);
+                }
+            }
+            return ticketList;
+        }
+
+        // 🧠 Core Mathematical Reverse-PIN Validation Engine
+        function verifyPlayerPin() {
+            var nameInput = document.getElementById("chk-name").value.trim();
+            var pinInput = document.getElementById("claim-pin").value.trim();
             
-            var fullTicketGrid = [];
-            for (var i = 2; i < parts.length; i++) {
-                fullTicketGrid.push(parseInt(parts[i]));
-            }
+            if(!nameInput || !pinInput) { alert("Please complete both inputs!"); return; }
+            if(pinInput.length !== 4 || isNaN(pinInput)) { alert("PIN must be exactly 4 digits!"); return; }
 
-            var typeNames = { "E5": "Early Five", "L1": "First Line", "L2": "Second Line", "L3": "Third Line", "FH": "Full House" };
-            if (!typeNames[claimType] || fullTicketGrid.length !== 27) {
-                alert("❌ INVALID CODE FORMAT: Re-check characters entered.");
-                return;
-            }
-
+            var playerTicket = getTicketNumbersByName(nameInput);
+            var typeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
+            
             var isClaimValid = false;
+            var detectedPrizeName = "";
 
-            if (claimType === "E5") {
-                var matches = fullTicketGrid.filter(function(num) { return num !== 0 && calledNumbersList.includes(num); }).length;
-                if (matches >= 5) isClaimValid = true;
-            }
-            else if (claimType === "L1") {
-                var row1 = fullTicketGrid.slice(0, 9).filter(function(x) { return x !== 0; });
-                isClaimValid = row1.every(function(num) { return calledNumbersList.includes(num); });
-            }
-            else if (claimType === "L2") {
-                var row2 = fullTicketGrid.slice(9, 18).filter(function(x) { return x !== 0; });
-                isClaimValid = row2.every(function(num) { return calledNumbersList.includes(num); });
-            }
-            else if (claimType === "L3") {
-                var row3 = fullTicketGrid.slice(18, 27).filter(function(x) { return x !== 0; });
-                isClaimValid = row3.every(function(num) { return calledNumbersList.includes(num); });
-            }
-            else if (claimType === "FH") {
-                var allActive = fullTicketGrid.filter(function(x) { return x !== 0; });
-                isClaimValid = allActive.every(function(num) { return calledNumbersList.includes(num); });
+            // Loop through all 5 prize type options to find a mathematical verification match
+            for (var prizeId = 0; prizeId < 5; prizeId++) {
+                var sum = 0;
+                
+                // Isolate corresponding target numbers based on prize constraints
+                if (prizeId === 0) { // Early 5: Check any active numbers that were actually called
+                    playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
+                } else if (prizeId === 1) { // Line 1
+                    playerTicket.slice(0, 9).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
+                } else if (prizeId === 2) { // Line 2
+                    playerTicket.slice(9, 18).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
+                } else if (prizeId === 3) { // Line 3
+                    playerTicket.slice(18, 27).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
+                } else if (prizeId === 4) { // Full House
+                    playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
+                }
+
+                // Reverse calculation algorithm mapping hashes matching the mobile device's seed
+                if (sum > 0) {
+                    var calculatedCheck = ((sum * 7) + prizeId + nameInput.length) % 9000 + 1000;
+                    if (calculatedCheck.toString() === pinInput) {
+                        
+                        // Strict Pattern rule enforcement verification checks
+                        if (prizeId === 0) {
+                            var markedCount = playerTicket.filter(n => n !== 0 && calledNumbersList.includes(n)).length;
+                            if (markedCount >= 5) isClaimValid = true;
+                        } else if (prizeId === 1) {
+                            var r1 = playerTicket.slice(0, 9).filter(x => x !== 0);
+                            isClaimValid = r1.every(n => calledNumbersList.includes(n));
+                        } else if (prizeId === 2) {
+                            var r2 = playerTicket.slice(9, 18).filter(x => x !== 0);
+                            isClaimValid = r2.every(n => calledNumbersList.includes(n));
+                        } else if (prizeId === 3) {
+                            var r3 = playerTicket.slice(18, 27).filter(x => x !== 0);
+                            isClaimValid = r3.every(n => calledNumbersList.includes(n));
+                        } else if (prizeId === 4) {
+                            var fh = playerTicket.filter(x => x !== 0);
+                            isClaimValid = fh.every(n => calledNumbersList.includes(n));
+                        }
+
+                        if (isClaimValid) {
+                            detectedPrizeName = typeNames[prizeId];
+                            break;
+                        }
+                    }
+                }
             }
 
             if (isClaimValid) {
                 var log = document.getElementById("winner-log");
                 if(log.innerText.includes("No claims")) log.innerHTML = "";
-                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ VERIFIED WINNER: " + playerWinner + " won [ " + typeNames[claimType] + " ]!</div>";
-                if(synth) synth.speak(new SpeechSynthesisUtterance("Claim verified for " + playerWinner));
+                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ PIN VERIFIED: " + nameInput + " successfully won [ " + detectedPrizeName + " ]!</div>";
+                if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin verified for " + nameInput)); }
+                document.getElementById("claim-pin").value = "";
             } else {
-                alert("❌ BOGUS CLAIM REJECTED: Validation failed for " + typeNames[claimType]);
-                if(synth) synth.speak(new SpeechSynthesisUtterance("Bogus claim rejected."));
+                alert("❌ BOGUS PIN REJECTED: This validation PIN is mathematically invalid or the required numbers have not been called yet!");
+                if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin rejected.")); }
             }
-            tokenInput.value = "";
+        }
+
+        function drawHostNumber() {
+            if (calledNumbersList.length >= 90) { alert("All numbers called!"); return; }
+            var rand = 0;
+            do { rand = Math.floor(Math.random() * 90) + 1; } while (calledNumbersList.includes(rand));
+            calledNumbersList.push(rand);
+            document.getElementById("current-number").innerText = rand;
+            document.getElementById("cell-" + rand).classList.add("called");
+            
+            if (synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Number " + rand)); }
         }
 
         function createHostGridBoard() {
@@ -125,15 +173,3 @@
             board.innerHTML = "";
             for (var i = 1; i <= 90; i++) {
                 var cell = document.createElement("div");
-                cell.className = "cell";
-                cell.id = "cell-" + i;
-                cell.innerText = i;
-                board.appendChild(cell);
-            }
-        }
-
-        function resetGame() { if (confirm("Reset board?")) window.location.reload(); }
-        window.onload = createHostGridBoard;
-    </script>
-</body>
-</html>
