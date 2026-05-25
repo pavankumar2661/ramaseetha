@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Tambola Ticket View</title>
+    <title>My Personal Ticket View</title>
     <style>
         :root { --primary-bg: #3498db; --grid-border: #34495e; --mark-color: #f1c40f; }
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; }
-        .panel { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 8px solid var(--primary-bg); }
+        .panel { background: white; padding: 20px; border-radius: 10px; max-width: 440px; margin: 10px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 8px solid var(--primary-bg); }
         .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; background: var(--grid-border); padding: 5px; border-radius: 6px; margin-top: 15px; }
-        .ticket-cell { background: #fff; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #2c3e50; border-radius: 4px; }
-        .ticket-cell.empty { background: #eaedf1; }
-        .ticket-cell.marked { background: var(--mark-color); color: #000; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
-        #announcement-banner { font-size: 18px; font-weight: bold; color: #e74c3c; margin: 15px 0; background: #fdf2f2; padding: 10px; border-radius: 5px; }
+        .ticket-cell { background: #fff; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #2c3e50; border-radius: 4px; cursor: pointer; user-select: none; }
+        .ticket-cell.empty { background: #eaedf1; cursor: default; }
+        .ticket-cell.marked { background: var(--mark-color); color: #000; font-size: 20px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
         .theme-selector { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; align-items: center; }
         .theme-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
     </style>
@@ -27,7 +26,7 @@
             <div class="theme-dot" style="background: #e67e22;" onclick="setTheme('#e67e22', '#4a2300', '#3498db')"></div>
         </div>
         <h2 id="display-title">👤 My Ticket</h2>
-        <div id="announcement-banner">Lobby connected. Waiting for Host to start...</div>
+        <p style="color: #7f8c8d; font-size: 13px; margin: 0;">Tap elements to mark or unmark numbers manually as the host calls them out!</p>
         <div id="ticket-grid" class="ticket-grid"></div>
     </div>
 
@@ -36,18 +35,16 @@
             var urlParams = new URLSearchParams(window.location.search);
             var nameParam = urlParams.get('name');
             var dataParam = urlParams.get('data');
-            var roomParam = urlParams.get('room');
 
-            if (nameParam && dataParam && roomParam) {
-                document.getElementById('display-title').innerText = "👤 Player: " + decodeURIComponent(nameParam) + " (Room " + roomParam + ")";
-                renderUrlTicket(dataParam);
-                initMessageReceiverHook();
+            if (nameParam && dataParam) {
+                document.getElementById('display-title').innerText = "👤 Ticket: " + decodeURIComponent(nameParam);
+                renderMobileGridCells(dataParam);
             } else {
-                document.body.innerHTML = "<h2>⚠️ Missing Ticket Parameters</h2><p>Please open tickets via the Game Room dashboard.</p>";
+                document.body.innerHTML = "<h2>⚠️ Missing Ticket parameters</h2><p>Please launch this page by scanning your game room QR Code.</p>";
             }
         };
 
-        function renderUrlTicket(dataStr) {
+        function renderMobileGridCells(dataStr) {
             var parts = dataStr.split("-");
             var grid = document.getElementById("ticket-grid");
             grid.innerHTML = "";
@@ -56,33 +53,15 @@
                 var val = parseInt(valStr);
                 var cell = document.createElement("div");
                 cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
-                if(val !== 0) { cell.innerText = val; cell.id = "c-" + val; }
-                grid.appendChild(cell);
-            });
-        }
-
-        function initMessageReceiverHook() {
-            // Listen natively to inter-tab commands pushed by the host window controller
-            window.addEventListener("message", function(event) {
-                var command = event.data;
-
-                if (command === "START") {
-                    document.getElementById("announcement-banner").innerText = "Game started! Waiting for first pull...";
-                } else if (command === "RESET") {
-                    window.location.reload();
-                } else if (command.indexOf("DRAW:") === 0) {
-                    var calledStr = command.substring(5);
-                    var calledArr = calledStr.split("-").map(Number);
-                    var latest = calledArr[calledArr.length - 1];
-
-                    document.getElementById("announcement-banner").innerText = "Last Called: " + latest;
-
-                    // Execute auto-dab tracking updates instantly
-                    calledArr.forEach(function(num) {
-                        var cell = document.getElementById("c-" + num);
-                        if(cell) cell.className = "ticket-cell marked";
-                    });
+                
+                if(val !== 0) { 
+                    cell.innerText = val; 
+                    // Cross out item toggle states manually on tap
+                    cell.onclick = function() {
+                        cell.classList.toggle("marked");
+                    };
                 }
+                grid.appendChild(cell);
             });
         }
 
