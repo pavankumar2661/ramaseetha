@@ -94,49 +94,41 @@
             
             var isClaimValid = false;
             var detectedPrizeName = "";
+            var matchedPrizeId = -1;
+
+            // Step 1: Decode the input PIN to find out which prize type matches the mathematical seed
+            var cleanNameKey = nameInput.toLowerCase().replace(/\s+/g, '');
+            var nameStringWeight = 0;
+            for(var i=0; i < cleanNameKey.length; i++) { nameStringWeight += cleanNameKey.charCodeAt(i); }
 
             for (var prizeId = 0; prizeId < 5; prizeId++) {
-                var sum = 0;
+                var expectedPinCalculated = ((nameStringWeight * 3) + (prizeId * 17)) % 9000 + 1000;
+                if (expectedPinCalculated.toString() === pinInput) {
+                    matchedPrizeId = prizeId;
+                    break;
+                }
+            }
+
+            // Step 2: If the PIN is authentic, verify if the current game board actually satisfies that rule requirement
+            if (matchedPrizeId !== -1) {
+                if (matchedPrizeId === 0) { // Early Five Check
+                    var markedCount = playerTicket.filter(n => n !== 0 && calledNumbersList.includes(n)).length;
+                    if (markedCount >= 5) isClaimValid = true;
+                } else if (matchedPrizeId === 1) { // First Line Check
+                    var r1 = playerTicket.slice(0, 9).filter(x => x !== 0);
+                    isClaimValid = r1.every(n => calledNumbersList.includes(n));
+                } else if (matchedPrizeId === 2) { // Second Line Check
+                    var r2 = playerTicket.slice(9, 18).filter(x => x !== 0);
+                    isClaimValid = r2.every(n => calledNumbersList.includes(n));
+                } else if (matchedPrizeId === 3) { // Third Line Check
+                    var r3 = playerTicket.slice(18, 27).filter(x => x !== 0);
+                    isClaimValid = r3.every(n => calledNumbersList.includes(n));
+                } else if (matchedPrizeId === 4) { // Full House Check
+                    var fh = playerTicket.filter(x => x !== 0);
+                    isClaimValid = fh.every(n => calledNumbersList.includes(n));
+                }
                 
-                if (prizeId === 0) {
-                    playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 1) {
-                    playerTicket.slice(0, 9).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 2) {
-                    playerTicket.slice(9, 18).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 3) {
-                    playerTicket.slice(18, 27).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 4) {
-                    playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                }
-
-                if (sum > 0) {
-                    var calculatedCheck = ((sum * 7) + prizeId + nameInput.length) % 9000 + 1000;
-                    if (calculatedCheck.toString() === pinInput) {
-                        
-                        if (prizeId === 0) {
-                            var markedCount = playerTicket.filter(n => n !== 0 && calledNumbersList.includes(n)).length;
-                            if (markedCount >= 5) isClaimValid = true;
-                        } else if (prizeId === 1) {
-                            var r1 = playerTicket.slice(0, 9).filter(x => x !== 0);
-                            isClaimValid = r1.every(n => calledNumbersList.includes(n));
-                        } else if (prizeId === 2) {
-                            var r2 = playerTicket.slice(9, 18).filter(x => x !== 0);
-                            isClaimValid = r2.every(n => calledNumbersList.includes(n));
-                        } else if (prizeId === 3) {
-                            var r3 = playerTicket.slice(18, 27).filter(x => x !== 0);
-                            isClaimValid = r3.every(n => calledNumbersList.includes(n));
-                        } else if (prizeId === 4) {
-                            var fh = playerTicket.filter(x => x !== 0);
-                            isClaimValid = fh.every(n => calledNumbersList.includes(n));
-                        }
-
-                        if (isClaimValid) {
-                            detectedPrizeName = typeNames[prizeId];
-                            break;
-                        }
-                    }
-                }
+                detectedPrizeName = typeNames[matchedPrizeId];
             }
 
             if (isClaimValid) {
@@ -146,7 +138,7 @@
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin verified for " + nameInput)); }
                 document.getElementById("claim-pin").value = "";
             } else {
-                alert("❌ INVALID PIN: Verification failed. The pattern is incomplete or the PIN is wrong.");
+                alert("❌ CLAIM REJECTED: Either the input PIN code is entirely incorrect, or the requested " + (detectedPrizeName ? detectedPrizeName : "prize pattern") + " has not been completed on your game board yet!");
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin rejected.")); }
             }
         }
@@ -173,7 +165,10 @@
         }
 
         function resetGame() { if (confirm("Reset board?")) window.location.reload(); }
-        window.onload = createHostGridBoard;
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            createHostGridBoard();
+        });
     </script>
 </body>
 </html>
