@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambola Host Dashboard</title>
-    <!-- Bulletproof modern realtime connection script -->
-    <script src="https://ably.com"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2, h3 { color: #2c3e50; }
@@ -55,24 +53,19 @@
     <script>
         var calledNumbersString = "0";
         var synth = window.speechSynthesis;
-        var realtimeChannel = null;
-        // Public Free-tier API key cluster string
-        var publicApiKey = "h3S7_w.6GAs_Q:Hpx5Z49XqO1I8F2Y3M4_K5L6N7P8Q9R0S1T2U3V4W5X"; 
 
         window.onload = function() {
             createHostGridBoard();
-            initAblyRealtimeChannel();
-        };
+            
+            // Clear storage keys on startup to ensure a fresh session
+            localStorage.setItem("tb_ledger_state", "Unclaimed|Unclaimed|Unclaimed|Unclaimed|Unclaimed");
+            localStorage.removeItem("tb_claim_trigger");
 
-        function initAblyRealtimeChannel() {
-            try {
-                // Initialize the modern client connection cleanly
-                var ably = new Ably.Realtime({ key: publicApiKey });
-                realtimeChannel = ably.channels.get("tambola_party_global_room");
-
-                realtimeChannel.subscribe("claim_event", function(message) {
-                    var parts = message.data.split("|");
-                    var prizeKey = parts[0]; 
+            // Direct Storage listener loops to grab player claims live
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'tb_claim_trigger' && e.newValue) {
+                    var parts = e.newValue.split("|");
+                    var prizeKey = parts[0];
                     var winnerName = parts[1];
 
                     var targetSpan = document.getElementById("win-" + prizeKey);
@@ -81,25 +74,21 @@
                         document.getElementById("ledger-" + prizeKey).classList.add("claimed");
                         speakAnnouncement(winnerName + " claimed " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
                         
-                        broadcastHostClaimsLedgerState();
+                        updateGlobalLedgerStorage();
                     }
-                });
+                }
+            });
+        };
 
-                realtimeChannel.subscribe("request_sync", function() {
-                    broadcastHostClaimsLedgerState();
-                });
-            } catch(e) { console.log(e); }
-        }
-
-        function broadcastHostClaimsLedgerState() {
-            if(!realtimeChannel) return;
-            var ledgerState = document.getElementById("win-early5").innerText + "|" +
-                              document.getElementById("win-line1").innerText + "|" +
-                              document.getElementById("win-line2").innerText + "|" +
-                              document.getElementById("win-line3").innerText + "|" +
-                              document.getElementById("win-fullhouse").innerText;
-
-            realtimeChannel.publish("ledger_sync", ledgerState);
+        function updateGlobalLedgerStorage() {
+            var ledgerString = 
+                document.getElementById("win-early5").innerText + "|" +
+                document.getElementById("win-line1").innerText + "|" +
+                document.getElementById("win-line2").innerText + "|" +
+                document.getElementById("win-line3").innerText + "|" +
+                document.getElementById("win-fullhouse").innerText;
+            
+            localStorage.setItem("tb_ledger_state", ledgerString);
         }
 
         function createHostGridBoard() {
@@ -141,8 +130,8 @@
 
         function resetGame() {
             if (confirm("Reset game?")) {
-                if(realtimeChannel) realtimeChannel.publish("system_control", "RESET");
-                window.location.reload();
+                localStorage.setItem("tb_ledger_state", "RESET");
+                setTimeout(function() { window.location.reload(); }, 200);
             }
         }
     </script>
