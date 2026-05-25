@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambola Host Dashboard</title>
-    <!-- Public connection handler -->
-    <script src="https://cloudflare.com"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
@@ -15,11 +13,13 @@
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
         .btn-danger { background: #e74c3c; } .btn-danger:hover { background: #c0392b; }
+        .btn-secondary { background: #34495e; } .btn-secondary:hover { background: #2c3e50; }
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
         .audio-controls { margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #555; }
         #player-lobby { margin-bottom: 20px; font-weight: bold; color: #2ecc71; font-size: 18px; }
+        .player-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px dashed #cbd5e1; }
     </style>
 </head>
 <body>
@@ -27,17 +27,23 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="container">
-        <!-- Lobby / Room Code Screen -->
+        <!-- Lobby / Setup Screen -->
         <div id="setup-section">
-            <h2>Your Game Room Code:</h2>
-            <div id="room-code-display">Creating Room...</div>
-            <p style="color: #7f8c8d; font-size: 15px; margin-bottom: 25px;">Give players this 4-digit code to connect their phone tickets!</p>
-            <h3>Players Joined:</h3>
-            <div id="player-lobby">No one has joined yet...</div>
-            <button class="btn-primary" style="width: 100%; font-size: 18px;" onclick="startCallingGame()">Start Calling Game</button>
+            <h2>Game Code Room Manager</h2>
+            <div id="room-code-display">----</div>
+            <p style="color: #7f8c8d; font-size: 15px; margin-bottom: 25px;">Type a player name below to instantly generate their phone ticket window wrapper!</p>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="player-name" placeholder="Enter player name..." style="padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 60%; margin-right: 10px;">
+                <button class="btn-secondary" onclick="addNewPlayerTicketWindow()">Add Player</button>
+            </div>
+
+            <h3>Active Roster:</h3>
+            <div id="player-lobby">No players added yet...</div>
+            <button class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 25px;" onclick="startCallingGame()">Start Calling Game</button>
         </div>
 
-        <!-- Active Board Screen -->
+        <!-- Active Calling Board Screen -->
         <div id="caller-section" style="display: none;">
             <h2>Live Game Active</h2>
             <div class="audio-controls">
@@ -54,32 +60,74 @@
         var roomCode = Math.floor(1000 + Math.random() * 9000).toString();
         var calledNumbers = new Array();
         var playersList = new Array();
+        var spawnWindows = new Array();
         var synth = window.speechSynthesis;
-        var client = null;
-        var topic = "git_tambola_party_" + roomCode;
 
         window.onload = function() {
             document.getElementById("room-code-display").innerText = roomCode;
-            
-            // Connect to free, public communication broker
-            client = mqtt.connect("wss://://hivemq.com");
-            
-            client.on("connect", function() {
-                client.subscribe(topic + "_lobby");
-            });
-
-            // Listen for players joining from their phones
-            client.on("message", function(top, message) {
-                var name = message.toString();
-                if(!playersList.includes(name)) {
-                    playersList.push(name);
-                    document.getElementById("player-lobby").innerText = playersList.join(" , ");
-                }
-            });
         };
 
+        function addNewPlayerTicketWindow() {
+            var input = document.getElementById("player-name");
+            var name = input.value.trim();
+            if (!name) return;
+
+            // Generate deterministic safe ticket configurations matrix string maps
+            var flatParts = new Array();
+            for (var cellIndex = 0; cellIndex < 27; cellIndex++) {
+                var r = Math.floor(cellIndex / 9); var c = cellIndex % 9;
+                var isNumber = false;
+                if (r === 0 && (c === 0 || c === 2 || c === 3 || c === 5 || c === 7)) isNumber = true;
+                if (r === 1 && (c === 1 || c === 3 || c === 4 || c === 6 || c === 8)) isNumber = true;
+                if (r === 2 && (c === 0 || c === 2 || c === 5 || c === 6 || c === 7)) isNumber = true;
+
+                if (isNumber) {
+                    var minVal = (c * 10) + 1;
+                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
+                    var rowOffset = (r * 3) + Math.floor(Math.random() * 3);
+                    var targetNum = minVal + (rowOffset % (maxVal - minVal + 1));
+                    if (targetNum > maxVal) targetNum = maxVal;
+                    flatParts.push(targetNum);
+                } else { flatParts.push(0); }
+            }
+            var ticketString = flatParts.join("-");
+
+            // Build targets pointing down safely towards ticket module profiles
+            var currentPath = window.location.pathname;
+            var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            var targetUrl = window.location.origin + directoryPath + "/ticket.html?name=" + encodeURIComponent(name) + "&data=" + ticketString + "&room=" + roomCode;
+
+            // Launch target frame natively simulating secondary mobile node viewpoints
+            var playerWin = window.open(targetUrl, "_blank", "width=420,height=600");
+            if(playerWin) {
+                spawnWindows.push(playerWin);
+            } else {
+                alert("Pop-up blocker detected! Please allow popups for this site so ticket frames can load smoothly.");
+            }
+
+            if(!playersList.includes(name)) {
+                playersList.push(name);
+                if(document.getElementById("player-lobby").innerText.includes("No players")) {
+                    document.getElementById("player-lobby").innerHTML = "";
+                }
+                var pRow = document.createElement("div");
+                pRow.className = "player-row";
+                pRow.innerHTML = "<span>👤 " + name + "</span><span style='color: #2ecc71; font-weight: bold;'>✓ Active Phone view Loaded</span>";
+                document.getElementById("player-lobby").appendChild(pRow);
+            }
+
+            input.value = "";
+            input.focus();
+        }
+
         function startCallingGame() {
-            client.publish(topic, "START");
+            if(playersList.length === 0) { alert("Please add at least one player to begin!"); return; }
+            
+            // Broadcast live runtime activation triggers down across active ticket window tabs
+            spawnWindows.forEach(function(win) {
+                if(!win.closed) win.postMessage("START", "*");
+            });
+
             document.getElementById("setup-section").style.display = "none";
             document.getElementById("caller-section").style.display = "block";
             createHostGridBoard();
@@ -115,13 +163,15 @@
             
             speakNumber(rand);
 
-            // Transmit drawn array directly to player phone screens instantly
-            client.publish(topic, calledNumbers.join("-"));
+            // Transmit draw configurations straight to spawned targets using Native Tab Sync Channels
+            spawnWindows.forEach(function(win) {
+                if(!win.closed) win.postMessage("DRAW:" + calledNumbers.join("-"), "*");
+            });
         }
 
         function resetHostGame() {
-            if (confirm("Reset game?")) {
-                client.publish(topic, "RESET");
+            if (confirm("Reset game loops?")) {
+                spawnWindows.forEach(function(win) { if(!win.closed) win.postMessage("RESET", "*"); });
                 window.location.reload();
             }
         }
