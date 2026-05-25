@@ -61,7 +61,6 @@
             return Math.abs(hash);
         }
 
-        // Reconstruct ticket numbers identically from name string seed parameters
         function getTicketNumbersByName(name) {
             var seed = generateHashSeed(name.toLowerCase());
             var ticketList = [];
@@ -83,7 +82,6 @@
             return ticketList;
         }
 
-        // 🧠 Core Mathematical Reverse-PIN Validation Engine
         function verifyPlayerPin() {
             var nameInput = document.getElementById("chk-name").value.trim();
             var pinInput = document.getElementById("claim-pin").value.trim();
@@ -97,19 +95,18 @@
             var isClaimValid = false;
             var detectedPrizeName = "";
 
-            // Loop through all 5 prize type options to find a mathematical verification match
             for (var prizeId = 0; prizeId < 5; prizeId++) {
                 var sum = 0;
                 
-                if (prizeId === 0) { // Early 5
+                if (prizeId === 0) {
                     playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 1) { // Line 1
+                } else if (prizeId === 1) {
                     playerTicket.slice(0, 9).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 2) { // Line 2
+                } else if (prizeId === 2) {
                     playerTicket.slice(9, 18).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 3) { // Line 3
+                } else if (prizeId === 3) {
                     playerTicket.slice(18, 27).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
-                } else if (prizeId === 4) { // Full House
+                } else if (prizeId === 4) {
                     playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
                 }
 
@@ -117,7 +114,6 @@
                     var calculatedCheck = ((sum * 7) + prizeId + nameInput.length) % 9000 + 1000;
                     if (calculatedCheck.toString() === pinInput) {
                         
-                        // Strict Pattern rule enforcement verification checks
                         if (prizeId === 0) {
                             var markedCount = playerTicket.filter(n => n !== 0 && calledNumbersList.includes(n)).length;
                             if (markedCount >= 5) isClaimValid = true;
@@ -150,7 +146,7 @@
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin verified for " + nameInput)); }
                 document.getElementById("claim-pin").value = "";
             } else {
-                alert("❌ INVALID PIN: Either this PIN is incorrect, or the required pattern numbers have not been called on the board!");
+                alert("❌ INVALID PIN: Verification failed. The pattern is incomplete or the PIN is wrong.");
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin rejected.")); }
             }
         }
@@ -177,3 +173,7 @@
         }
 
         function resetGame() { if (confirm("Reset board?")) window.location.reload(); }
+        window.onload = createHostGridBoard;
+    </script>
+</body>
+</html>
