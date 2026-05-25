@@ -78,7 +78,7 @@
             document.getElementById("ticket-grid-view").style.display = "block";
             document.getElementById("display-title").innerText = "👤 Ticket: " + playerName;
 
-            buildTicketGridStringMethod();
+            buildTicketGridDeterministic();
             initLocalStorageSync();
         }
 
@@ -119,32 +119,31 @@
         }
 
         function sendClaim(prizeKey) {
-            // Updated structured string to match host side perfectly
             localStorage.setItem("tb_claim_trigger", prizeKey + "|" + playerName + "|" + generatedFlatString + "|" + Date.now());
         }
 
-        function buildTicketGridStringMethod() {
+        // Complete, 100% stable matching ticket grid generation using text maps
+        function buildTicketGridDeterministic() {
             var seed = generateHashSeed(playerName.toLowerCase());
             var grid = document.getElementById("ticket-grid");
             grid.innerHTML = "";
 
-            var layoutString = "101101010010110101101001110"; 
+            var layoutPattern = "101101010010110101101001110"; 
             var temporaryFlatParts = [];
 
             for (var idx = 0; idx < 27; idx++) {
                 var c = idx % 9;
-                var cellType = layoutString.charAt(idx);
+                var cellType = layoutPattern.charAt(idx);
 
                 if (cellType === "1") {
                     var minVal = (c * 10) + 1;
-                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
-                    
-                    seed = (seed * 9301 + 49297) % 233280;
-                    var randomFactor = seed / 233280;
-                    var calculatedNum = minVal + Math.floor(randomFactor * (maxVal - minVal + 1));
-                    if (calculatedNum > maxVal) calculatedNum = maxVal;
-
-                    temporaryFlatParts.push(calculatedNum);
+                    // Seed calculations are identical on both host and player templates
+                    var deterministicNumber = minVal + (seed % 10);
+                    if (deterministicNumber > (c * 10 + 10)) {
+                        deterministicNumber = (c * 10 + 5);
+                    }
+                    temporaryFlatParts.push(deterministicNumber);
+                    seed = (seed + 7) * 3; // Shift factor step
                 } else {
                     temporaryFlatParts.push(0);
                 }
