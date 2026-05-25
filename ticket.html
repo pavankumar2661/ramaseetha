@@ -47,9 +47,9 @@
         <div class="prize-box">
             <h3>🏆 Generate Claim PIN</h3>
             <div class="prize-row"><span>Early Five</span> <div id="container-0"><button class="claim-btn" onclick="generateFourDigitPin(0)">Get PIN</button></div></div>
-            <div class="prize-row"><span>First Line</span> <div id="container-1"><button class="claim-btn" onclick="generateValidationCode(1)">Get PIN</button></div></div>
-            <div class="prize-row"><span>Second Line</span> <div id="container-2"><button class="claim-btn" onclick="generateValidationCode(2)">Get PIN</button></div></div>
-            <div class="prize-row"><span>Third Line</span> <div id="container-3"><button class="claim-btn" onclick="generateValidationCode(3)">Get PIN</button></div></div>
+            <div class="prize-row"><span>First Line</span> <div id="container-1"><button class="claim-btn" onclick="generateFourDigitPin(1)">Get PIN</button></div></div>
+            <div class="prize-row"><span>Second Line</span> <div id="container-2"><button class="claim-btn" onclick="generateFourDigitPin(2)">Get PIN</button></div></div>
+            <div class="prize-row"><span>Third Line</span> <div id="container-3"><button class="claim-btn" onclick="generateFourDigitPin(3)">Get PIN</button></div></div>
             <div class="prize-row"><span>Full House</span> <div id="container-4"><button class="claim-btn" style="background:#e74c3c;" onclick="generateFourDigitPin(4)">Get PIN</button></div></div>
         </div>
 
@@ -62,20 +62,14 @@
 
     <script>
         var nameInput = "";
-        var flatTicketNumbersList = [];
-
-        function generateHashSeed(str) {
-            var hash = 0;
-            for (var i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
-            return Math.abs(hash);
-        }
+        var flatTicketNumbersList = [4,0,25,32,0,55,0,76,0,0,16,0,38,44,0,67,0,89,5,0,28,0,0,59,68,78,0];
 
         function generateTicketAndOpen() {
             nameInput = document.getElementById("p-name").value.trim();
             if (!nameInput) return;
             document.getElementById("join-screen").style.display = "none";
             document.getElementById("ticket-grid-view").style.display = "block";
-            buildTicketGridStringMethod();
+            buildFlatStaticTicketData();
             initWinnersRealtimeListener();
         }
 
@@ -90,19 +84,15 @@
 
         function processWinnersDataString(data) {
             if (!data) return;
-            
-            // Fixed String parsing setup layout bug entirely
-            var splitTimestamp = data.split("?");
-            var rawNamesString = splitTimestamp[0];
-            var winners = rawNamesString.split("|");
-            if (winners.length < 5) return;
+            var parts = data.split("?")[0].split("|");
+            if (parts.length < 5) return;
 
             var prizeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
             var isFullHouseClaimed = false;
 
             for (var i = 0; i < 5; i++) {
-                var winnerName = winners[i];
-                if (winnerName !== "empty") {
+                var winnerName = parts[i];
+                if (winnerName && winnerName !== "empty") {
                     var container = document.getElementById("container-" + i);
                     if (container) {
                         if (winnerName.toLowerCase() === nameInput.toLowerCase()) {
@@ -120,7 +110,8 @@
                 var rowsBox = document.getElementById("score-rows-container");
                 rowsBox.innerHTML = "";
                 for (var j = 0; j < 5; j++) {
-                    var finalWinner = (winners[j] === "empty") ? "Unclaimed" : winners[j];
+                    var finalWinner = parts[j];
+                    if (!finalWinner || finalWinner === "empty") finalWinner = "Unclaimed";
                     rowsBox.innerHTML += "<div class='score-item'><b>" + prizeNames[j] + ":</b> <span>" + finalWinner + "</span></div>";
                 }
                 scoreboard.style.display = "block";
@@ -128,44 +119,30 @@
             }
         }
 
-        function generateValidationCode(prizeId) {
-            var sum = 0;
-            var startIdx = (prizeId === 1) ? 0 : (prizeId === 2) ? 9 : 18;
-            for (var idx = startIdx; idx < (startIdx + 9); idx++) {
-                var num = flatTicketNumbersList[idx];
-                var cellDOM = document.getElementById("cell-" + idx);
-                if (num !== 0 && cellDOM && cellDOM.classList.contains("marked")) { sum += num; }
-            }
-            if(sum === 0) { alert("Mark line numbers first!"); return; }
-            calculateAndShowPin(prizeId);
-        }
-
         function generateFourDigitPin(prizeId) {
-            var sum = 0;
-            for (var idx = 0; idx < 27; idx++) {
-                var num = flatTicketNumbersList[idx];
-                var cellDOM = document.getElementById("cell-" + idx);
-                if (num !== 0 && cellDOM && cellDOM.classList.contains("marked")) { sum += num; }
-            }
-            if(sum === 0) { alert("Mark numbers first!"); return; }
-            calculateAndShowPin(prizeId);
-        }
-
-        function calculateAndShowPin(prizeId) {
-            var cleanNameKey = nameInput.toLowerCase().replace(/\s+/g, '');
             var nameStringWeight = 0;
-            for(var i=0; i < cleanNameKey.length; i++) { nameStringWeight += cleanNameKey.charCodeAt(i); }
-            var calculatedPin = ((nameStringWeight * 3) + (prizeId * 17)) % 9000 + 1000;
+            var cleanNameKey = nameInput.toLowerCase().replace(/\s+/g, '');
+            for (var i = 0; i < cleanNameKey.length; i++) {
+                nameStringWeight += cleanNameKey.charCodeAt(i);
+            }
+            var calculatedPin = 1000 + ((nameStringWeight * 3 + prizeId * 17) % 9000);
             document.getElementById("token-txt").innerText = calculatedPin;
             document.getElementById("token-display-banner").style.display = "block";
         }
 
-        function buildTicketGridStringMethod() {
-            var seed = generateHashSeed(nameInput.toLowerCase());
+        function buildFlatStaticTicketData() {
             var grid = document.getElementById("ticket-grid");
             grid.innerHTML = "";
-            var layoutString = "101101010010110101101001110"; 
-
-            for (var idx = 0; idx < 27; idx++) {
-                var c = idx % 9;
-if (layoutString.charAt(idx) === "1") {var minVal = (c * 10) + 1;var maxVal = (c === 8) ? 90 : (c * 10) + 10;seed = (seed * 9301 + 49297) % 233280;var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));if (calculatedNum > maxVal) calculatedNum = maxVal;flatTicketNumbersList.push(calculatedNum);} else {flatTicketNumbersList.push(0);}}flatTicketNumbersList.forEach(function(val, index) {var cell = document.createElement("div");cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";if(val !== 0) {cell.innerText = val; cell.id = "cell-" + index;cell.onclick = function() { this.classList.toggle("marked"); };}grid.appendChild(cell);});}
+            flatTicketNumbersList.forEach(function(val, index) {
+                var cell = document.createElement("div");
+                cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
+                if(val !== 0) { 
+                    cell.innerText = val; cell.id = "cell-" + index;
+                    cell.onclick = function() { this.classList.toggle("marked"); };
+                }
+                grid.appendChild(cell);
+            });
+        }
+    </script>
+</body>
+</html>
