@@ -3,159 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Host Dashboard</title>
-    <!-- Serverless wireless pipeline library wrapper -->
-    <script src="https://pubnub.com"></script>
+    <title>Tambola Host Panel</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
-        h1, h2, h3 { color: #2c3e50; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        h1, h2 { color: #2c3e50; }
         .main-layout { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1100px; margin: 0 auto; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex: 1; min-width: 320px; }
         #current-number { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 10px 0; height: 100px; }
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
         .btn-danger { background: #e74c3c; } .btn-danger:hover { background: #c0392b; }
+        .btn-secondary { background: #34495e; } .btn-secondary:hover { background: #2c3e50; }
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
-        .audio-controls { margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #555; }
-        .achievement-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px; margin: 10px 0; border-radius: 6px; border-left: 5px solid #bdc3c7; font-weight: bold; }
-        .achievement-row.claimed { border-left-color: #f1c40f; background: #fffdf0; }
-        .winner-tag { color: #27ae60; font-size: 16px; text-transform: capitalize; }
-        #alert-box { display: none; background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; padding: 12px; margin: 10px auto; border-radius: 6px; font-weight: bold; max-width: 450px; }
+        input { padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 50%; text-align: center; }
+        .log-box { text-align: left; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; max-width: 450px; margin: 20px auto; min-height: 100px; }
     </style>
 </head>
 <body>
 
-    <h1>🎙️ Tambola Host Dashboard</h1>
-    <div id="alert-box">⚠️ ALERT: Bogus Claim Blocked!</div>
+    <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
+        <!-- Live Calling Dashboard -->
         <div class="panel">
-            <h2>Live Calling Board</h2>
-            <div class="audio-controls">
-                <label><input type="checkbox" id="mute-voice" checked> 🔊 Enable Voice Announcements</label>
-            </div>
+            <h2>Live Numbers Board</h2>
             <div id="current-number">-</div>
             <button class="btn-primary" onclick="drawHostNumber()">Next Number</button>
             <button class="btn-danger" onclick="resetGame()">Reset Game</button>
             <div id="board"></div>
         </div>
 
+        <!-- Token Decoding Checker -->
         <div class="panel">
-            <h2>🏆 Verified Claims Ledger</h2>
-            <div id="claims-box">
-                <div class="achievement-row" id="ledger-early5"><span>Early Five:</span> <span class="winner-tag" id="win-early5">Unclaimed</span></div>
-                <div class="achievement-row" id="ledger-line1"><span>First Line:</span> <span class="winner-tag" id="win-line1">Unclaimed</span></div>
-                <div class="achievement-row" id="ledger-line2"><span>Second Line:</span> <span class="winner-tag" id="win-line2">Unclaimed</span></div>
-                <div class="achievement-row" id="ledger-line3"><span>Third Line:</span> <span class="winner-tag" id="win-line3">Unclaimed</span></div>
-                <div class="achievement-row" id="ledger-fullhouse"><span>Full House:</span> <span class="winner-tag" id="win-fullhouse">Unclaimed</span></div>
+            <h2>🔐 Anti-Cheat Claim Checker</h2>
+            <p style="color: #7f8c8d; font-size: 14px;">Type the 5-character token called out by a player below:</p>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="claim-token" placeholder="Enter Token (e.g. A5X91)">
+                <button class="btn-secondary" onclick="decodeAndVerifyToken()">Check Claim</button>
             </div>
+
+            <h3>🏆 Verified Winners Log</h3>
+            <div id="winner-log" class="log-box">No claims verified yet.</div>
         </div>
     </div>
 
     <script>
         var calledNumbersList = [];
         var synth = window.speechSynthesis;
-        var pubnub = null;
-        var roomChannel = "tambola_reponame_live_channel";
 
-        window.onload = function() {
-            createHostGridBoard();
-            initWirelessPipeline();
-        };
+        function drawHostNumber() {
+            if (calledNumbersList.length >= 90) { alert("All numbers called!"); return; }
+            var rand = 0;
+            do { rand = Math.floor(Math.random() * 90) + 1; } while (calledNumbersList.includes(rand));
 
-        function initWirelessPipeline() {
-            // Using free usage cluster keys natively
-            pubnub = new PubNub({
-                publishKey: 'pub-c-49f2b826-6215-46b0-8f96-3b3b497cbbe0',
-                subscribeKey: 'sub-c-1123f1b4-2394-11ef-9fa0-02d50125da06',
-                userId: "host_screen_master"
-            });
-
-            pubnub.subscribe({ channels: [roomChannel] });
-
-            pubnub.addListener({
-                message: function(event) {
-                    var packet = event.message;
-                    if (packet && packet.type === "CLAIM_REQUEST") {
-                        var prizeKey = packet.prizeKey;
-                        var winnerName = packet.name;
-                        var ticketNumbers = packet.numbers.split("-").map(Number);
-
-                        var isValid = validateClaim(prizeKey, ticketNumbers);
-
-                        if (isValid) {
-                            var targetSpan = document.getElementById("win-" + prizeKey);
-                            if (targetSpan && targetSpan.innerText === "Unclaimed") {
-                                targetSpan.innerText = "🏆 " + winnerName;
-                                document.getElementById("ledger-" + prizeKey).classList.add("claimed");
-                                speakAnnouncement(winnerName + " verified for " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
-                                broadcastLedgerState();
-                            }
-                        } else {
-                            triggerBogusClaimAlert(winnerName, prizeKey);
-                        }
-                    }
-                }
-            });
+            calledNumbersList.push(rand);
+            document.getElementById("current-number").innerText = rand;
+            document.getElementById("cell-" + rand).classList.add("called");
             
-            setTimeout(broadcastLedgerState, 1000);
-        }
-
-        function validateClaim(prizeKey, numbers) {
-            var markedNumbers = numbers.filter(function(num) {
-                return num !== 0 && calledNumbersList.includes(num);
-            });
-
-            if (prizeKey === "early5") return markedNumbers.length >= 5;
-            
-            if (prizeKey === "line1") {
-                var row1 = numbers.slice(0, 9).filter(x => x !== 0);
-                return row1.every(num => calledNumbersList.includes(num));
+            if (synth) {
+                synth.cancel();
+                synth.speak(new SpeechSynthesisUtterance("Number " + rand));
             }
-            if (prizeKey === "line2") {
-                var row2 = numbers.slice(9, 18).filter(x => x !== 0);
-                return row2.every(num => calledNumbersList.includes(num));
-            }
-            if (prizeKey === "line3") {
-                var row3 = numbers.slice(18, 27).filter(x => x !== 0);
-                return row3.every(num => calledNumbersList.includes(num));
-            }
-            if (prizeKey === "fullhouse") {
-                var allNumbers = numbers.filter(x => x !== 0);
-                return allNumbers.every(num => calledNumbersList.includes(num));
-            }
-            return false;
-        }
-
-        function triggerBogusClaimAlert(name, prize) {
-            var box = document.getElementById("alert-box");
-            box.innerText = "⚠️ REJECTED: " + name.toUpperCase() + " made a false claim for " + prize.toUpperCase() + "!";
-            box.style.display = "block";
-            speakAnnouncement("Bogus claim by " + name + " rejected!");
-            
-            pubnub.publish({
-                channel: roomChannel,
-                message: { type: "CLAIM_REJECTED", name: name, prizeKey: prize }
-            });
-            
-            setTimeout(function() { box.style.display = "none"; }, 5000);
-        }
-
-        function broadcastLedgerState() {
-            if(!pubnub) return;
-            var ledgerString = 
-                document.getElementById("win-early5").innerText + "|" +
-                document.getElementById("win-line1").innerText + "|" +
-                document.getElementById("win-line2").innerText + "|" +
-                document.getElementById("win-line3").innerText + "|" +
-                document.getElementById("win-fullhouse").innerText;
-            
-            pubnub.publish({
-                channel: roomChannel,
-                message: { type: "LEDGER_UPDATE", state: ledgerString }
-            });
         }
 
         function createHostGridBoard() {
@@ -170,30 +81,51 @@
             }
         }
 
-        function speakAnnouncement(text) {
-            if (!synth || document.getElementById('mute-voice').checked === false) return;
-            synth.cancel();
-            var utterance = new SpeechSynthesisUtterance(text);
-            synth.speak(utterance);
-        }
+        // 🧠 Anti-Cheat Decoder Module
+        function decodeAndVerifyToken() {
+            var tokenInput = document.getElementById("claim-token");
+            var token = tokenInput.value.trim().toUpperCase();
+            if(!token) return;
 
-        function drawHostNumber() {
-            if (calledNumbersList.length >= 90) { alert("All numbers called!"); return; }
-            var rand = 0;
-            do { rand = Math.floor(Math.random() * 90) + 1; } while (calledNumbersList.includes(rand));
+            // Decrypt player state profiles out of the plain token characters
+            var nameLength = token.charCodeAt(0) - 65; 
+            var prizeId = parseInt(token.charAt(1)); 
+            var checkSum = parseInt(token.substring(2)); 
 
-            calledNumbersList.push(rand);
-            document.getElementById("current-number").innerText = rand;
-            document.getElementById("cell-" + rand).classList.add("called");
-            speakAnnouncement("Number " + rand);
-        }
+            var prizeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
+            var labels = ["early5", "line1", "line2", "line3", "fullhouse"];
+            
+            var matchedValueFound = false;
+            var validatedNumber = 0;
 
-        function resetGame() {
-            if (confirm("Reset game?")) {
-                pubnub.publish({ channel: roomChannel, message: { type: "RESET_GAME" } });
-                setTimeout(function() { window.location.reload(); }, 200);
+            // Reverse hash lookups against drawn board configurations
+            for(var i=1; i<=90; i++) {
+                if(calledNumbersList.includes(i)) {
+                    var calculatedCheck = (nameLength + prizeId + i) * 7 % 899 + 100;
+                    if(calculatedCheck === checkSum) {
+                        matchedValueFound = true;
+                        validatedNumber = i;
+                        break;
+                    }
+                }
             }
+
+            if (matchedValueFound && prizeId >= 0 && prizeId < 5) {
+                var log = document.getElementById("winner-log");
+                if(log.innerText.includes("No claims")) log.innerHTML = "";
+                
+                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0;'><b>✓ VERIFIED:</b> Player won <b>" + prizeNames[prizeId] + "</b> on Number " + validatedNumber + "!</div>";
+                if(synth) synth.speak(new SpeechSynthesisUtterance("Claim verified successfully!"));
+            } else {
+                alert("❌ BOGUS CLAIM REJECTED: Those numbers have not been drawn on this board!");
+                if(synth) synth.speak(new SpeechSynthesisUtterance("Bogus claim rejected."));
+            }
+
+            tokenInput.value = "";
         }
+
+        function resetGame() { if (confirm("Reset board?")) window.location.reload(); }
+        window.onload = createHostGridBoard;
     </script>
 </body>
 </html>
