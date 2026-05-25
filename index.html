@@ -101,8 +101,7 @@
             for (var prizeId = 0; prizeId < 5; prizeId++) {
                 var sum = 0;
                 
-                // Isolate corresponding target numbers based on prize constraints
-                if (prizeId === 0) { // Early 5: Check any active numbers that were actually called
+                if (prizeId === 0) { // Early 5
                     playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
                 } else if (prizeId === 1) { // Line 1
                     playerTicket.slice(0, 9).forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
@@ -114,7 +113,6 @@
                     playerTicket.forEach(function(num) { if(num !== 0 && calledNumbersList.includes(num)) sum += num; });
                 }
 
-                // Reverse calculation algorithm mapping hashes matching the mobile device's seed
                 if (sum > 0) {
                     var calculatedCheck = ((sum * 7) + prizeId + nameInput.length) % 9000 + 1000;
                     if (calculatedCheck.toString() === pinInput) {
@@ -148,11 +146,11 @@
             if (isClaimValid) {
                 var log = document.getElementById("winner-log");
                 if(log.innerText.includes("No claims")) log.innerHTML = "";
-                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ PIN VERIFIED: " + nameInput + " successfully won [ " + detectedPrizeName + " ]!</div>";
+                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ PIN VERIFIED: " + nameInput + " won [ " + detectedPrizeName + " ]!</div>";
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin verified for " + nameInput)); }
                 document.getElementById("claim-pin").value = "";
             } else {
-                alert("❌ BOGUS PIN REJECTED: This validation PIN is mathematically invalid or the required numbers have not been called yet!");
+                alert("❌ INVALID PIN: Either this PIN is incorrect, or the required pattern numbers have not been called on the board!");
                 if(synth) { synth.cancel(); synth.speak(new SpeechSynthesisUtterance("Pin rejected.")); }
             }
         }
@@ -173,3 +171,9 @@
             board.innerHTML = "";
             for (var i = 1; i <= 90; i++) {
                 var cell = document.createElement("div");
+                cell.className = "cell"; cell.id = "cell-" + i; cell.innerText = i;
+                board.appendChild(cell);
+            }
+        }
+
+        function resetGame() { if (confirm("Reset board?")) window.location.reload(); }
