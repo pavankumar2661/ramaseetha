@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Host Panel</title>
+    <title>Tambola Host Dashboard</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
@@ -17,7 +17,7 @@
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
-        input { padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 50%; text-align: center; }
+        input { padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 60%; text-align: center; margin-bottom: 10px; }
         .log-box { text-align: left; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; max-width: 450px; margin: 20px auto; min-height: 100px; }
     </style>
 </head>
@@ -26,7 +26,6 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
-        <!-- Live Calling Dashboard -->
         <div class="panel">
             <h2>Live Numbers Board</h2>
             <div id="current-number">-</div>
@@ -35,16 +34,13 @@
             <div id="board"></div>
         </div>
 
-        <!-- Token Decoding Checker -->
         <div class="panel">
-            <h2>🔐 Anti-Cheat Claim Checker</h2>
-            <p style="color: #7f8c8d; font-size: 14px;">Type the 5-character token called out by a player below:</p>
-            
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="claim-token" placeholder="Enter Token (e.g. A5X91)">
-                <button class="btn-secondary" onclick="decodeAndVerifyToken()">Check Claim</button>
+            <h2>🔐 Achievement Claim Verifier</h2>
+            <p style="color: #7f8c8d; font-size: 14px;">Enter the verification string called out by the player:</p>
+            <div>
+                <input type="text" id="claim-token" placeholder="e.g. L2-PAVAN-0-12-0..."><br>
+                <button class="btn-secondary" onclick="verifyTicketClaim()">Verify Pattern Claim</button>
             </div>
-
             <h3>🏆 Verified Winners Log</h3>
             <div id="winner-log" class="log-box">No claims verified yet.</div>
         </div>
@@ -69,6 +65,61 @@
             }
         }
 
+        function verifyTicketClaim() {
+            var tokenInput = document.getElementById("claim-token");
+            var rawToken = tokenInput.value.trim().toUpperCase();
+            if(!rawToken) return;
+
+            var parts = rawToken.split("-");
+            var claimType = parts[0];  
+            var playerWinner = parts[1]; 
+            
+            var fullTicketGrid = [];
+            for (var i = 2; i < parts.length; i++) {
+                fullTicketGrid.push(parseInt(parts[i]));
+            }
+
+            var typeNames = { "E5": "Early Five", "L1": "First Line", "L2": "Second Line", "L3": "Third Line", "FH": "Full House" };
+            if (!typeNames[claimType] || fullTicketGrid.length !== 27) {
+                alert("❌ INVALID CODE FORMAT: Re-check characters entered.");
+                return;
+            }
+
+            var isClaimValid = false;
+
+            if (claimType === "E5") {
+                var matches = fullTicketGrid.filter(function(num) { return num !== 0 && calledNumbersList.includes(num); }).length;
+                if (matches >= 5) isClaimValid = true;
+            }
+            else if (claimType === "L1") {
+                var row1 = fullTicketGrid.slice(0, 9).filter(function(x) { return x !== 0; });
+                isClaimValid = row1.every(function(num) { return calledNumbersList.includes(num); });
+            }
+            else if (claimType === "L2") {
+                var row2 = fullTicketGrid.slice(9, 18).filter(function(x) { return x !== 0; });
+                isClaimValid = row2.every(function(num) { return calledNumbersList.includes(num); });
+            }
+            else if (claimType === "L3") {
+                var row3 = fullTicketGrid.slice(18, 27).filter(function(x) { return x !== 0; });
+                isClaimValid = row3.every(function(num) { return calledNumbersList.includes(num); });
+            }
+            else if (claimType === "FH") {
+                var allActive = fullTicketGrid.filter(function(x) { return x !== 0; });
+                isClaimValid = allActive.every(function(num) { return calledNumbersList.includes(num); });
+            }
+
+            if (isClaimValid) {
+                var log = document.getElementById("winner-log");
+                if(log.innerText.includes("No claims")) log.innerHTML = "";
+                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0; font-weight:bold;'>✓ VERIFIED WINNER: " + playerWinner + " won [ " + typeNames[claimType] + " ]!</div>";
+                if(synth) synth.speak(new SpeechSynthesisUtterance("Claim verified for " + playerWinner));
+            } else {
+                alert("❌ BOGUS CLAIM REJECTED: Validation failed for " + typeNames[claimType]);
+                if(synth) synth.speak(new SpeechSynthesisUtterance("Bogus claim rejected."));
+            }
+            tokenInput.value = "";
+        }
+
         function createHostGridBoard() {
             var board = document.getElementById("board");
             board.innerHTML = "";
@@ -79,49 +130,6 @@
                 cell.innerText = i;
                 board.appendChild(cell);
             }
-        }
-
-        // 🧠 Anti-Cheat Decoder Module
-        function decodeAndVerifyToken() {
-            var tokenInput = document.getElementById("claim-token");
-            var token = tokenInput.value.trim().toUpperCase();
-            if(!token) return;
-
-            // Decrypt player state profiles out of the plain token characters
-            var nameLength = token.charCodeAt(0) - 65; 
-            var prizeId = parseInt(token.charAt(1)); 
-            var checkSum = parseInt(token.substring(2)); 
-
-            var prizeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
-            var labels = ["early5", "line1", "line2", "line3", "fullhouse"];
-            
-            var matchedValueFound = false;
-            var validatedNumber = 0;
-
-            // Reverse hash lookups against drawn board configurations
-            for(var i=1; i<=90; i++) {
-                if(calledNumbersList.includes(i)) {
-                    var calculatedCheck = (nameLength + prizeId + i) * 7 % 899 + 100;
-                    if(calculatedCheck === checkSum) {
-                        matchedValueFound = true;
-                        validatedNumber = i;
-                        break;
-                    }
-                }
-            }
-
-            if (matchedValueFound && prizeId >= 0 && prizeId < 5) {
-                var log = document.getElementById("winner-log");
-                if(log.innerText.includes("No claims")) log.innerHTML = "";
-                
-                log.innerHTML += "<div style='color:#2ecc71; margin:5px 0;'><b>✓ VERIFIED:</b> Player won <b>" + prizeNames[prizeId] + "</b> on Number " + validatedNumber + "!</div>";
-                if(synth) synth.speak(new SpeechSynthesisUtterance("Claim verified successfully!"));
-            } else {
-                alert("❌ BOGUS CLAIM REJECTED: Those numbers have not been drawn on this board!");
-                if(synth) synth.speak(new SpeechSynthesisUtterance("Bogus claim rejected."));
-            }
-
-            tokenInput.value = "";
         }
 
         function resetGame() { if (confirm("Reset board?")) window.location.reload(); }
