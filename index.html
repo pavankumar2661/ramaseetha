@@ -7,25 +7,15 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
-        .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         #current-number { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 10px 0; height: 100px; }
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
         .btn-danger { background: #e74c3c; } .btn-danger:hover { background: #c0392b; }
-        .btn-secondary { background: #34495e; } .btn-secondary:hover { background: #2c3e50; }
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
         .audio-controls { margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #555; }
-        
-        .qr-roster { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
-        .qr-card { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 15px; text-align: center; width: 145px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .qr-container-box { display: grid; grid-template-columns: repeat(21, 1fr); gap: 0; width: 120px; height: 120px; background: white; padding: 5px; border-radius: 4px; margin: 0 auto 10px auto; }
-        .q-pixel { aspect-ratio: 1; background: white; }
-        .q-pixel.black { background: black; }
-        .qr-card span { font-weight: bold; color: #2c3e50; text-transform: capitalize; font-size: 14px; display: block; margin-bottom: 5px; }
-        .fallback-link { font-size: 11px; color: #3498db; text-decoration: none; word-break: break-all; font-weight: bold; }
-        .fallback-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -33,136 +23,23 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="container">
-        <!-- Setup Screen -->
-        <div id="setup-section">
-            <h2>Scan Tickets to Phones</h2>
-            <p style="color: #7f8c8d; font-size: 14px;">Type names to generate custom QR codes. Players scan with their phones to get their tickets!</p>
-            
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="player-name" placeholder="Enter player name..." style="padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 55%; margin-right: 10px;">
-                <button class="btn-secondary" onclick="generateQRForPlayerPhone()">Add Player</button>
-            </div>
-
-            <div id="qr-roster-box" class="qr-roster"></div>
-            <button class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 25px;" onclick="startCallingGame()">Start Calling Game</button>
+        <h2>Live Calling Board</h2>
+        <div class="audio-controls">
+            <label><input type="checkbox" id="mute-voice" checked> 🔊 Enable Voice Announcements</label>
         </div>
-
-        <!-- Active Board Screen -->
-        <div id="caller-section" style="display: none;">
-            <h2>Live Game Active</h2>
-            <div class="audio-controls">
-                <label><input type="checkbox" id="mute-voice" checked> 🔊 Enable Voice Announcements</label>
-            </div>
-            <div id="current-number">-</div>
-            <button class="btn-primary" onclick="drawHostNumber()">Next Number</button>
-            <button class="btn-danger" onclick="resetHostGame()">Reset Game</button>
-            <div id="board"></div>
-        </div>
+        <div id="current-number">-</div>
+        <button class="btn-primary" onclick="drawHostNumber()">Next Number</button>
+        <button class="btn-danger" onclick="resetGame()">Reset Game</button>
+        <div id="board"></div>
     </div>
 
     <script>
-        // Use flat comma-separated string paths to store values safely without empty bracket objects
         var calledNumbersString = "0";
         var synth = window.speechSynthesis;
 
-        function drawPureHtmlQR(targetElement, urlString) {
-            targetElement.innerHTML = "";
-            var hash = 0;
-            for (var i = 0; i < urlString.length; i++) {
-                hash = urlString.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            
-            for (var cell = 0; cell < 441; cell++) {
-                var r = Math.floor(cell / 21);
-                var c = cell % 21;
-                var pixel = document.createElement("div");
-                pixel.className = "q-pixel";
-
-                var isFinderPattern = 
-                    (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7) ||
-                    (r === 0 || r === 6 || c === 0 || c === 6) && (r < 7 && c < 7) ||
-                    (r === 0 || r === 6 || c === 14 || c === 20) && (r < 7 && c > 13) ||
-                    (r === 14 || r === 20 || c === 0 || c === 6) && (r > 13 && c < 7);
-
-                if (isFinderPattern) {
-                    var innerBlack = 
-                        (r >= 0 && r <= 6 && c >= 0 && c <= 6 && (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4))) ||
-                        (r >= 0 && r <= 6 && c >= 14 && c <= 20 && (r === 0 || r === 6 || c === 14 || c === 20 || (r >= 2 && r <= 4 && c >= 16 && c <= 18))) ||
-                        (r >= 14 && r <= 20 && c >= 0 && c <= 6 && (r === 14 || r === 20 || c === 0 || c === 6 || (r >= 16 && r <= 18 && c >= 2 && c <= 4)));
-                    if(innerBlack) pixel.classList.add("black");
-                } else {
-                    var pseudoRandomValue = Math.abs(Math.sin(hash + cell));
-                    if ((pseudoRandomValue - Math.floor(pseudoRandomValue)) > 0.47) {
-                        pixel.classList.add("black");
-                    }
-                }
-                targetElement.appendChild(pixel);
-            }
-        }
-
-        function generateQRForPlayerPhone() {
-            var input = document.getElementById("player-name");
-            var name = input.value.trim();
-            if (!name) return;
-
-            var flatPartsString = "";
-            for (var cellIndex = 0; cellIndex < 27; cellIndex++) {
-                var r = Math.floor(cellIndex / 9); 
-                var c = cellIndex % 9;
-                var isNumber = false;
-                
-                if (r === 0 && (c === 0 || c === 2 || c === 3 || c === 5 || c === 7)) isNumber = true;
-                if (r === 1 && (c === 1 || c === 3 || c === 4 || c === 6 || c === 8)) isNumber = true;
-                if (r === 2 && (c === 0 || c === 2 || c === 5 || c === 6 || c === 7)) isNumber = true;
-
-                if (isNumber) {
-                    var minVal = (c * 10) + 1;
-                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
-                    var rowOffset = (r * 3) + Math.floor(Math.random() * 3);
-                    var targetNum = minVal + (rowOffset % (maxVal - minVal + 1));
-                    if (targetNum > maxVal) targetNum = maxVal;
-                    flatPartsString += targetNum;
-                } else { 
-                    flatPartsString += "0"; 
-                }
-                if (cellIndex < 26) flatPartsString += "-";
-            }
-
-            var currentPath = window.location.pathname;
-            var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-            var targetPlayerUrl = window.location.origin + directoryPath + "/ticket.html?name=" + encodeURIComponent(name) + "&data=" + flatPartsString;
-
-            var card = document.createElement("div");
-            card.className = "qr-card";
-            
-            var qrBox = document.createElement("div");
-            qrBox.className = "qr-container-box";
-            card.appendChild(qrBox);
-            
-            var label = document.createElement("span");
-            label.innerText = "👤 " + name;
-            card.appendChild(label);
-
-            var backupLink = document.createElement("a");
-            backupLink.className = "fallback-link";
-            backupLink.href = targetPlayerUrl;
-            backupLink.target = "_blank";
-            backupLink.innerText = "[ Open Link ]";
-            card.appendChild(backupLink);
-            
-            document.getElementById("qr-roster-box").appendChild(card);
-
-            drawPureHtmlQR(qrBox, targetPlayerUrl);
-
-            input.value = "";
-            input.focus();
-        }
-
-        function startCallingGame() {
-            document.getElementById("setup-section").style.display = "none";
-            document.getElementById("caller-section").style.display = "block";
+        window.onload = function() {
             createHostGridBoard();
-        }
+        };
 
         function createHostGridBoard() {
             var board = document.getElementById("board");
@@ -195,3 +72,21 @@
             
             while (isDuplicate) {
                 rand = Math.floor(Math.random() * 90) + 1;
+                if (!splitList.includes(rand.toString())) {
+                    isDuplicate = false;
+                }
+            }
+
+            calledNumbersString += "-" + rand;
+            document.getElementById("current-number").innerText = rand;
+            document.getElementById("cell-" + rand).classList.add("called");
+            
+            speakNumber(rand);
+        }
+
+        function resetGame() {
+            if (confirm("Reset game?")) { window.location.reload(); }
+        }
+    </script>
+</body>
+</html>
