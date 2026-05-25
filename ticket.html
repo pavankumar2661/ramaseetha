@@ -62,7 +62,7 @@
 
     <script>
         var playerName = "";
-        var generatedFlatString = ""; // Track calculated vector stream 
+        var generatedFlatString = ""; 
 
         function generateHashSeed(str) {
             var hash = 0;
@@ -119,8 +119,8 @@
         }
 
         function sendClaim(prizeKey) {
-            // Passes verification ticket matrix payload safely over hardwire vectors
-            localStorage.setItem("tb_claim_trigger", prizeKey + "|" + playerName + "|" + Date.now() + "|" + generatedFlatString);
+            // Updated structured string to match host side perfectly
+            localStorage.setItem("tb_claim_trigger", prizeKey + "|" + playerName + "|" + generatedFlatString + "|" + Date.now());
         }
 
         function buildTicketGridStringMethod() {
@@ -152,7 +152,6 @@
             
             generatedFlatString = temporaryFlatParts.join("-");
 
-            // Render output items directly onto screen viewport mapping 
             temporaryFlatParts.forEach(function(val) {
                 var cell = document.createElement("div");
                 cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
