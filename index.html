@@ -3,188 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rama Seetha Game</title>
+    <title>Tambola Number Caller</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f7f6; margin: 0; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 360px; margin: 15px auto; border: 1px solid #ccc; box-sizing: border-box; }
-        h2 { color: #d32f2f; margin-top: 0; }
-        
-        .option-container { text-align: left; margin: 15px 0; }
-        .touch-label { display: block; background: #f9f9f9; padding: 14px; margin: 8px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        input[type="radio"] { margin-right: 12px; transform: scale(1.3); vertical-align: middle; }
-        
-        input[type="number"] { padding: 12px; font-size: 18px; width: 100%; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; text-align: center; }
-        
-        .btn { background: #4caf50; color: white; border: none; padding: 14px; font-size: 18px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; display: block; box-sizing: border-box; }
-        .btn-guess { background: #d32f2f; }
-        
-        .role-box { font-size: 32px; font-weight: bold; color: #1976d2; margin: 25px 0; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; }
-        .hidden { display: none !important; }
-        .assignment-list { text-align: left; background: #eee; padding: 15px; border-radius: 8px; font-size: 16px; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        h1 { color: #333; }
+        #current-number { font-size: 80px; font-weight: bold; color: #ff4757; margin: 20px 0; height: 100px; }
+        button { font-size: 18px; padding: 10px 20px; cursor: pointer; background: #2ed573; color: white; border: none; border-radius: 5px; margin: 5px; }
+        button:hover { background: #26af5f; }
+        #reset { background: #ff4757; }
+        #reset:hover { background: #ff2e44; }
+        #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 600px; margin: 20px auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .cell { padding: 10px; background: #e4e7eb; border-radius: 3px; font-weight: bold; color: #777; }
+        .cell.called { background: #2ed573; color: white; }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN 1: LOGIN SETUP -->
-    <div id="screen-home" class="card">
-        <h2>✨ Rama Seetha Game ✨</h2>
-        
-        <p style="margin-bottom: 5px;"><strong>1. Choose Your Name:</strong></p>
-        <div class="option-container">
-            <label class="touch-label"><input type="radio" name="player-name" value="Medhansh" checked> Medhansh</label>
-            <label class="touch-label"><input type="radio" name="player-name" value="Suma"> Suma</label>
-            <label class="touch-label"><input type="radio" name="player-name" value="Kanku"> Kanku</label>
-            <label class="touch-label"><input type="radio" name="player-name" value="Tulasi"> Tulasi</label>
-        </div>
-
-        <p style="margin: 15px 0 5px 0;"><strong>2. Make a 4-Digit Game Code:</strong></p>
-        <p style="font-size: 12px; color: #666; margin: 0 0 5px 0;">All 4 friends must type the exact same code to sync roles!</p>
-        <input type="number" id="round-number" placeholder="Example: 5831">
-
-        <button class="btn" onclick="checkSelection()">Confirm My Phone 🚀</button>
-    </div>
-
-    <!-- SCREEN 2: CHIT REVEAL -->
-    <div id="screen-reveal" class="card hidden">
-        <h2>🤫 Your Secret Chit</h2>
-        <h3 id="reveal-username-header"></h3>
-        <div id="my-role" class="role-box"></div>
-        <p style="color: #666; font-size: 14px;">Keep your screen hidden from your friends!</p>
-        <button class="btn" style="background:#666;" onclick="window.location.reload()">Exit Game</button>
-    </div>
-
-    <!-- SCREEN 3: RAMA GUESSING VIEW -->
-    <div id="screen-rama" class="card hidden">
-        <h2>🏹 You are RAMA!</h2>
-        <p>Look at your 3 friends. Guess who has the <strong>Sita</strong> chit:</p>
-        
-        <div class="option-container" id="guess-radio-container">
-            <!-- Populated via JavaScript -->
-        </div>
-        
-        <button class="btn btn-guess" onclick="revealWinner()">Submit Final Guess</button>
-    </div>
-
-    <!-- SCREEN 4: SUMMARY RESULTS -->
-    <div id="screen-results" class="card hidden">
-        <h2>🏁 Round Results</h2>
-        <h3 id="result-text"></h3>
-        
-        <div class="assignment-list">
-            <strong>Actual Chit Locations:</strong><br><br>
-            <span id="final-reveals-list"></span>
-        </div>
-        
-        <button class="btn" onclick="window.location.reload()">Play Next Round 🔄</button>
-    </div>
+    <h1>Tambola Bingo Caller</h1>
+    <div id="current-number">-</div>
+    <button onclick="drawNumber()">Draw Number</button>
+    <button id="reset" onclick="resetGame()">Reset Game</button>
+    
+    <div id="board"></div>
 
     <script>
-        const allPlayers = ["Medhansh", "Suma", "Kanku", "Tulasi"];
-        let myName = "";
-        let roundAssignments = {};
+        let calledNumbers = new Set();
+        const board = document.getElementById('board');
+        const currentNumDisplay = document.getElementById('current-number');
 
-        // Custom mathematical seed-shuffler logic (forces matching randoms offline)
-        function seededRandomShuffle(array, seed) {
-            let m = 0x80000000; // 2**31
-            let a = 1103515245;
-            let c = 12345;
-            let currentSeed = seed;
-
-            function nextRandom() {
-                currentSeed = (a * currentSeed + c) % m;
-                return currentSeed / (m - 1);
+        function createBoard() {
+            board.innerHTML = '';
+            for (let i = 1; i <= 90; i++) {
+                let cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = 'cell-' + i;
+                cell.innerText = i;
+                board.appendChild(cell);
             }
-
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(nextRandom() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
         }
 
-        function checkSelection() {
-            let radios = document.getElementsByName("player-name");
-            for (let i = 0; i < radios.length; i++) {
-                if (radios[i].checked) {
-                    myName = radios[i].value;
-                    break;
-                }
-            }
-
-            let roundInput = document.getElementById("round-number").value.trim();
-            if (!roundInput || isNaN(roundInput) || roundInput.length < 1) {
-                alert("Please enter a Game Code first!");
+        function drawNumber() {
+            if (calledNumbers.size >= 90) {
+                alert('All numbers have been called!');
                 return;
             }
+            let rand;
+            do {
+                rand = Math.floor(Math.random() * 90) + 1;
+            } while (calledNumbers.has(rand));
 
-            // Generate fully randomized chits array using the code entered as a seed map
-            let baseChits = ["Rama", "Sita", "Hanuman", "Ravana"];
-            let numericSeed = parseInt(roundInput);
-            let randomizedChits = seededRandomShuffle(baseChits, numericSeed);
+            calledNumbers.add(rand);
+            currentNumDisplay.innerText = rand;
+            document.getElementById('cell-' + rand).classList.add('called');
+        }
 
-            allPlayers.forEach((player, i) => {
-                roundAssignments[player] = randomizedChits[i];
-            });
-
-            let myRole = roundAssignments[myName];
-            document.getElementById("screen-home").classList.add("hidden");
-
-            if (myRole === "Rama") {
-                document.getElementById("screen-rama").classList.remove("hidden");
-                let container = document.getElementById("guess-radio-container");
-                container.innerHTML = "";
-                
-                let firstChecked = true;
-                allPlayers.forEach(player => {
-                    if (player !== myName) {
-                        let checkedStr = firstChecked ? "checked" : "";
-                        container.innerHTML += `<label class="touch-label"><input type="radio" name="guess-name" value="${player}" ${checkedStr}> ${player}</label>`;
-                        firstChecked = false;
-                    }
-                });
-            } else {
-                document.getElementById("screen-reveal").classList.remove("hidden");
-                document.getElementById("reveal-username-header").innerHTML = "Player: " + myName;
-                document.getElementById("my-role").textContent = myRole;
+        function resetGame() {
+            if (confirm('Are you sure you want to reset the game?')) {
+                calledNumbers.clear();
+                currentNumDisplay.innerText = '-';
+                createBoard();
             }
         }
 
-        function revealWinner() {
-            let guess = "";
-            let radios = document.getElementsByName("guess-name");
-            for (let i = 0; i < radios.length; i++) {
-                if (radios[i].checked) {
-                    guess = radios[i].value;
-                    break;
-                }
-            }
-
-            let actualSitaUser = "";
-            for (let player in roundAssignments) {
-                if (roundAssignments[player] === "Sita") {
-                    actualSitaUser = player;
-                    break;
-                }
-            }
-
-            document.getElementById("screen-rama").classList.add("hidden");
-            document.getElementById("screen-results").classList.remove("hidden");
-
-            let resBox = document.getElementById("result-text");
-            if (guess === actualSitaUser) {
-                resBox.innerHTML = "🎉 Correct! You found Sita!<br>" + actualSitaUser + " had Sita. Rama gets 1000 points!";
-                resBox.style.color = "green";
-            } else {
-                resBox.innerHTML = "😢 Wrong Guess!<br>You picked " + guess + ", but Sita was hidden on " + actualSitaUser + "!";
-                resBox.style.color = "red";
-            }
-
-            let list = document.getElementById("final-reveals-list");
-            list.innerHTML = "";
-            allPlayers.forEach(p => {
-                list.innerHTML += "• " + p + ": <strong>" + roundAssignments[p] + "</strong><br>";
-            });
-        }
+        createBoard();
     </script>
 </body>
 </html>
