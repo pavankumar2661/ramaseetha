@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambola Host Dashboard</title>
-    <!-- PeerJS for direct Peer-to-Peer room connectivity without a database -->
-    <script src="https://unpkg.com"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
-        h1, h2, h3 { color: #2c3e50; }
+        h1, h2 { color: #2c3e50; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #room-code-display { font-size: 48px; font-weight: bold; color: #3498db; letter-spacing: 5px; margin: 15px 0; }
+        #room-code-display { font-size: 54px; font-weight: bold; color: #3498db; letter-spacing: 5px; margin: 15px 0; }
         #current-number { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 10px 0; height: 100px; }
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
@@ -18,7 +16,6 @@
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
-        #joined-players-list { font-weight: bold; color: #2ecc71; margin-bottom: 20px; font-size: 18px; }
         .audio-controls { margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #555; }
     </style>
 </head>
@@ -27,19 +24,15 @@
     <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="container">
-        <!-- 1. Lobby Waiting Screen -->
+        <!-- Lobby / Room Code Screen -->
         <div id="setup-section">
             <h2>Your Game Room Code:</h2>
-            <div id="room-code-display">Connecting...</div>
-            <p style="color: #7f8c8d;">Share this 4-digit code with players to join!</p>
-            
-            <h3>Connected Players</h3>
-            <div id="joined-players-list">No one joined yet</div>
-            
-            <button class="btn-primary" style="width: 100%; font-size: 18px;" onclick="startCallingGame()">Start Game</button>
+            <div id="room-code-display">----</div>
+            <p style="color: #7f8c8d; font-size: 15px; margin-bottom: 25px;">Give players this 4-digit code to log into their phone tickets!</p>
+            <button class="btn-primary" style="width: 100%; font-size: 18px;" onclick="startCallingGame()">Start Calling Game</button>
         </div>
 
-        <!-- 2. Active Game Caller Screen -->
+        <!-- Active Board Screen -->
         <div id="caller-section" style="display: none;">
             <h2>Live Game Active</h2>
             <div class="audio-controls">
@@ -53,70 +46,17 @@
     </div>
 
     <script>
-        var peer = null;
-        var roomCode = "";
-        var connectedPeers = new Array();
-        var playersList = new Array();
+        var roomCode = Math.floor(1000 + Math.random() * 9000).toString();
         var calledNumbers = new Array();
         var synth = window.speechSynthesis;
 
-        // Auto-generate 4 digit identity tags securely 
-        function initHostPeer() {
-            roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-            // Prefix strings prevent collision on global public peer server directories
-            peer = new Peer("tambola-room-" + roomCode);
-
-            peer.on('open', function(id) {
-                document.getElementById("room-code-display").innerText = roomCode;
-            });
-
-            peer.on('connection', function(conn) {
-                conn.on('data', function(data) {
-                    // Check if player is signing in
-                    if (data.type === "join") {
-                        connectedPeers.push(conn);
-                        playersList.push("👤 " + data.playerName);
-                        document.getElementById("joined-players-list").innerText = playersList.join(" , ");
-                        
-                        // Instantly build and dispatch ticket payload back down connection pipe
-                        var generatedTicketStr = generateDeterministicTicketString();
-                        conn.send({ type: "ticket", ticketData: generatedTicketStr, name: data.playerName });
-                    }
-                });
-            });
-
-            peer.on('error', function(err) {
-                // Failsafe auto-rebound loop if random ID generation conflicts
-                if (err.type === 'unavailable-id') { initHostPeer(); }
-            });
-        }
-
-        function generateDeterministicTicketString() {
-            var flatParts = new Array();
-            for (var cellIndex = 0; cellIndex < 27; cellIndex++) {
-                var r = Math.floor(cellIndex / 9); var c = cellIndex % 9;
-                var isNum = false;
-                if (r === 0 && (c === 0 || c === 2 || c === 3 || c === 5 || c === 7)) isNum = true;
-                if (r === 1 && (c === 1 || c === 3 || c === 4 || c === 6 || c === 8)) isNum = true;
-                if (r === 2 && (c === 0 || c === 2 || c === 5 || c === 6 || c === 7)) isNum = true;
-
-                if (isNum) {
-                    var min = (c * 10) + 1; var max = (c === 8) ? 90 : (c * 10) + 10;
-                    var offset = (r * 3) + Math.floor(Math.random() * 3);
-                    var targetNum = min + (offset % (max - min + 1));
-                    if (targetNum > max) targetNum = max;
-                    flatParts.push(targetNum);
-                } else { flatParts.push(0); }
-            }
-            return flatParts.join("-");
-        }
+        window.onload = function() {
+            document.getElementById("room-code-display").innerText = roomCode;
+            localStorage.setItem("tambola_room", roomCode);
+            localStorage.setItem("tambola_numbers", "");
+        };
 
         function startCallingGame() {
-            if(connectedPeers.length === 0) { alert("Please wait for at least one player!"); return; }
-            
-            // Update room connection states across all edge terminals
-            connectedPeers.forEach(function(conn) { conn.send({ type: "status", status: "active" }); });
-            
             document.getElementById("setup-section").style.display = "none";
             document.getElementById("caller-section").style.display = "block";
             createHostGridBoard();
@@ -152,17 +92,17 @@
             
             speakNumber(rand);
 
-            // Broadcast called numbers live to all peer connections
-            connectedPeers.forEach(function(conn) {
-                conn.send({ type: "draw", calledArray: calledNumbers });
-            });
+            // Instant, cross-tab local sync without network lag
+            localStorage.setItem("tambola_numbers", calledNumbers.join("-"));
         }
 
         function resetHostGame() {
-            if (confirm("Reset everything?")) { window.location.reload(); }
+            if (confirm("Reset game?")) {
+                localStorage.removeItem("tambola_room");
+                localStorage.removeItem("tambola_numbers");
+                window.location.reload();
+            }
         }
-
-        initHostPeer();
     </script>
 </body>
 </html>
