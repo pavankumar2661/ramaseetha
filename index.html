@@ -24,7 +24,7 @@
 </head>
 <body>
 
-    <h1>🎙️ Tambola Host (Auto-Validation Active)</h1>
+    <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
         <div class="panel">
@@ -59,15 +59,17 @@
             localStorage.setItem("tb_ledger_state", "Unclaimed|Unclaimed|Unclaimed|Unclaimed|Unclaimed");
             localStorage.removeItem("tb_claim_trigger");
 
-            // Direct Storage listener loops to grab player claims live
             window.addEventListener('storage', function(e) {
                 if (e.key === 'tb_claim_trigger' && e.newValue) {
                     var parts = e.newValue.split("|");
                     var prizeKey = parts[0];
                     var winnerName = parts[1];
-                    var ticketNumbers = parts[3].split("-").map(Number); // Get player numbers
+                    var numbersString = parts[2];
+                    
+                    if(!numbersString) return;
+                    var ticketNumbers = numbersString.split("-").map(Number);
 
-                    // Perform Auto-Validation against calledNumbersList
+                    // Perform Auto-Validation logic locally
                     var isValid = validateClaim(prizeKey, ticketNumbers);
 
                     if (isValid) {
@@ -85,41 +87,30 @@
             });
         };
 
-        // 🧠 Core Validation Logic
         function validateClaim(prizeKey, numbers) {
             var markedNumbers = numbers.filter(function(num) {
                 return num !== 0 && calledNumbersList.includes(num);
             });
 
-            // Early Five: Any 5 valid numbers checked on ticket
             if (prizeKey === "early5") {
                 return markedNumbers.length >= 5;
             }
-
-            // Line 1: First 9 elements check (Row 1)
             if (prizeKey === "line1") {
                 var row1 = numbers.slice(0, 9).filter(x => x !== 0);
                 return row1.every(num => calledNumbersList.includes(num));
             }
-
-            // Line 2: Middle 9 elements check (Row 2)
             if (prizeKey === "line2") {
                 var row2 = numbers.slice(9, 18).filter(x => x !== 0);
                 return row2.every(num => calledNumbersList.includes(num));
             }
-
-            // Line 3: Last 9 elements check (Row 3)
             if (prizeKey === "line3") {
                 var row3 = numbers.slice(18, 27).filter(x => x !== 0);
                 return row3.every(num => calledNumbersList.includes(num));
             }
-
-            // Full House: All 15 generated numbers must match drawn pool
             if (prizeKey === "fullhouse") {
                 var allNumbers = numbers.filter(x => x !== 0);
                 return allNumbers.every(num => calledNumbersList.includes(num));
             }
-
             return false;
         }
 
@@ -155,11 +146,8 @@
 
         function drawHostNumber() {
             if (calledNumbersList.length >= 90) { alert("All numbers called!"); return; }
-            
             var rand = 0;
-            do {
-                rand = Math.floor(Math.random() * 90) + 1;
-            } while (calledNumbersList.includes(rand));
+            do { rand = Math.floor(Math.random() * 90) + 1; } while (calledNumbersList.includes(rand));
 
             calledNumbersList.push(rand);
             document.getElementById("current-number").innerText = rand;
