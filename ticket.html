@@ -90,8 +90,11 @@
 
         function processWinnersDataString(data) {
             if (!data) return;
-            var cleanString = data.split("?")[0];
-            var winners = cleanString.split("|");
+            
+            // Fixed String parsing setup layout bug entirely
+            var splitTimestamp = data.split("?");
+            var rawNamesString = splitTimestamp[0];
+            var winners = rawNamesString.split("|");
             if (winners.length < 5) return;
 
             var prizeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
@@ -165,5 +168,4 @@
 
             for (var idx = 0; idx < 27; idx++) {
                 var c = idx % 9;
-                if (layoutString.charAt(idx) === "1") {
-                    var minVal = (c * 10) + 1;
+if (layoutString.charAt(idx) === "1") {var minVal = (c * 10) + 1;var maxVal = (c === 8) ? 90 : (c * 10) + 10;seed = (seed * 9301 + 49297) % 233280;var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));if (calculatedNum > maxVal) calculatedNum = maxVal;flatTicketNumbersList.push(calculatedNum);} else {flatTicketNumbersList.push(0);}}flatTicketNumbersList.forEach(function(val, index) {var cell = document.createElement("div");cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";if(val !== 0) {cell.innerText = val; cell.id = "cell-" + index;cell.onclick = function() { this.classList.toggle("marked"); };}grid.appendChild(cell);});}
