@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Personal Ticket View</title>
-    <!-- Secure Firewall-Safe MQTT Broker client library -->
-    <script src="https://cloudflare.com"></script>
+    <title>My Personal Ticket</title>
+    <!-- Bulletproof modern realtime connection script -->
+    <script src="https://ably.com"></script>
     <style>
         :root { --primary-bg: #3498db; --grid-border: #34495e; --mark-color: #f1c40f; }
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; }
@@ -19,20 +19,16 @@
         .ticket-cell.marked { background: var(--mark-color); color: #000; font-size: 20px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
         .theme-selector { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; align-items: center; }
         .theme-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-        
-        /* Mobile Achievements Board Styles */
         .prize-box { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; text-align: left; }
         .prize-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #f8fafc; border-radius: 6px; margin: 6px 0; border: 1px solid #e2e8f0; }
-        .claim-btn { font-size: 12px; padding: 6px 12px; width: auto; background: #e67e22; }
+        .claim-btn { font-size: 12px; padding: 6px 12px; width: auto; background: #e67e22; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
         .winner-banner { color: #27ae60; font-weight: bold; font-size: 14px; }
-        
-        /* Full House Global Overlay Banner */
         #final-gameover-overlay { display: none; background: #fff5f5; border: 3px solid #e74c3c; border-radius: 8px; padding: 15px; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- 1. Name Entry Splash -->
+    <!-- 1. Name Entry Screen -->
     <div id="join-screen" class="panel">
         <h2>Enter Your Name</h2>
         <input type="text" id="p-name" placeholder="Enter name (e.g. Pavan)">
@@ -48,13 +44,11 @@
             <div class="theme-dot" style="background: #9b59b6;" onclick="setTheme('#9b59b6', '#2c1a36', '#2ecc71')"></div>
             <div class="theme-dot" style="background: #e67e22;" onclick="setTheme('#e67e22', '#4a2300', '#3498db')"></div>
         </div>
-        <h2 id="display-title">👤 My Ticket</h2>
+        <h2 id="display-title"> My Ticket</h2>
         <div id="ticket-grid" class="ticket-grid"></div>
 
-        <!-- Dynamic Live Claim Actions Toolbar -->
         <div class="prize-box">
             <h3>🏆 Claim Prizes</h3>
-            
             <div class="prize-row"><span>Early Five</span> <button class="claim-btn" id="btn-early5" onclick="sendClaim('early5')">Claim</button><span class="winner-banner" id="pwin-early5" style="display:none;"></span></div>
             <div class="prize-row"><span>First Line</span> <button class="claim-btn" id="btn-line1" onclick="sendClaim('line1')">Claim</button><span class="winner-banner" id="pwin-line1" style="display:none;"></span></div>
             <div class="prize-row"><span>Second Line</span> <button class="claim-btn" id="btn-line2" onclick="sendClaim('line2')">Claim</button><span class="winner-banner" id="pwin-line2" style="display:none;"></span></div>
@@ -62,7 +56,6 @@
             <div class="prize-row"><span>Full House</span> <button class="claim-btn" id="btn-fullhouse" style="background:#e74c3c;" onclick="sendClaim('fullhouse')">Claim</button><span class="winner-banner" id="pwin-fullhouse" style="display:none;"></span></div>
         </div>
 
-        <!-- Game Over Ledger Overlay -->
         <div id="final-gameover-overlay">
             <h3 style="color:#e74c3c; margin-top:0;">🏁 GAME OVER - FINAL RESULTS 🏁</h3>
             <div id="final-results-list" style="text-align:left; font-size:14px; line-height:1.6; color:#2c3e50;"></div>
@@ -71,8 +64,8 @@
 
     <script>
         var playerName = "";
-        var mqttClient = null;
-        var channelTopic = "global_reponame_tambola_sync_channel";
+        var realtimeChannel = null;
+        var publicApiKey = "h3S7_w.6GAs_Q:Hpx5Z49XqO1I8F2Y3M4_K5L6N7P8Q9R0S1T2U3V4W5X"; 
 
         function generateHashSeed(str) {
             var hash = 0;
@@ -89,23 +82,20 @@
             document.getElementById("display-title").innerText = "👤 Ticket: " + playerName;
 
             buildTicketGrid();
-            initPlayerMqttConnection();
+            initPlayerAblyConnection();
         }
 
-        function initPlayerMqttConnection() {
-            var clientId = "player_" + Math.random().toString(16).substr(2, 8);
-            mqttClient = new Paho.MQTT.Client("://hivemq.com", Number(8884), clientId);
+        function initPlayerAblyConnection() {
+            try {
+                var ably = new Ably.Realtime({ key: publicApiKey });
+                realtimeChannel = ably.channels.get("tambola_party_global_room");
 
-            mqttClient.onMessageArrived = function(message) {
-                var payload = message.payloadString;
-                
-                if (payload === "RESET_LEDGER") {
-                    window.location.reload();
-                }
-                
-                // Parse Incoming Global Ledger Updates from Host
-                if (payload.indexOf("LEDGER:") === 0) {
-                    var claims = payload.substring(7).split("|");
+                realtimeChannel.subscribe("system_control", function(message) {
+                    if (message.data === "RESET") window.location.reload();
+                });
+
+                realtimeChannel.subscribe("ledger_sync", function(message) {
+                    var claims = message.data.split("|");
                     var keys = ["early5", "line1", "line2", "line3", "fullhouse"];
                     var labelKeys = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
                     
@@ -118,7 +108,6 @@
                         }
                     }
 
-                    // Trigger GameOver Screen once Full House value is logged
                     if (claims[4] !== "Unclaimed") {
                         document.getElementById("final-gameover-overlay").style.display = "block";
                         var resultBox = document.getElementById("final-results-list");
@@ -127,21 +116,16 @@
                             resultBox.innerHTML += "<b>" + labelKeys[j] + ":</b> " + claims[j] + "<br>";
                         }
                     }
-                }
-            };
+                });
 
-            mqttClient.connect({
-                onSuccess: function() { mqttClient.subscribe(channelTopic); },
-                useSSL: true
-            });
+                // Ask host for existing ledger state immediately on boot
+                realtimeChannel.publish("request_sync", "SYNC");
+            } catch(e) { console.log(e); }
         }
 
         function sendClaim(prizeKey) {
-            if (!mqttClient) return;
-            var payload = "CLAIM:" + prizeKey + "|" + playerName;
-            var message = new Paho.MQTT.Message(payload);
-            message.destinationName = channelTopic;
-            mqttClient.send(message);
+            if (!realtimeChannel) return;
+            realtimeChannel.publish("claim_event", prizeKey + "|" + playerName);
         }
 
         function buildTicketGrid() {
@@ -174,3 +158,11 @@
 
             for (var col = 0; col < 9; col++) {
                 var vals = new Array();
+                for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) vals.push(ticket[row][col]); }
+                vals.sort(function(a, b) { return a - b; });
+                var vIdx = 0;
+                for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) ticket[row][col] = vals[vIdx++]; }
+            }
+
+            var grid = document.getElementById("ticket-grid");
+            grid.innerHTML = "";
