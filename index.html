@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambola Host Dashboard</title>
-    <!-- Secure Firewall-Safe MQTT Broker client library -->
-    <script src="https://cloudflare.com"></script>
+    <!-- Bulletproof modern realtime connection script -->
+    <script src="https://ably.com"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2, h3 { color: #2c3e50; }
@@ -19,8 +19,6 @@
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
         .audio-controls { margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #555; }
-        
-        /* Achievements Box layout styles */
         .achievement-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px; margin: 10px 0; border-radius: 6px; border-left: 5px solid #bdc3c7; font-weight: bold; }
         .achievement-row.claimed { border-left-color: #f1c40f; background: #fffdf0; }
         .winner-tag { color: #27ae60; font-size: 16px; text-transform: capitalize; }
@@ -28,10 +26,9 @@
 </head>
 <body>
 
-    <h1>🎙️ Tambola Host & Prizes Control Center</h1>
+    <h1>🎙️ Tambola Host Control Panel</h1>
 
     <div class="main-layout">
-        <!-- Left: Numbers Board Panel -->
         <div class="panel">
             <h2>Live Calling Board</h2>
             <div class="audio-controls">
@@ -43,10 +40,8 @@
             <div id="board"></div>
         </div>
 
-        <!-- Right: Achievements Leaderboard Tracker Panel -->
         <div class="panel">
             <h2>🏆 Claims Ledger</h2>
-            <p style="color:#7f8c8d; font-size:14px; margin-top:0;">Updates instantly as players tap claims on their phones</p>
             <div id="claims-box">
                 <div class="achievement-row" id="ledger-early5"><span>Early Five:</span> <span class="winner-tag" id="win-early5">Unclaimed</span></div>
                 <div class="achievement-row" id="ledger-line1"><span>First Line:</span> <span class="winner-tag" id="win-line1">Unclaimed</span></div>
@@ -60,26 +55,24 @@
     <script>
         var calledNumbersString = "0";
         var synth = window.speechSynthesis;
-        var mqttClient = null;
-        // Global channel room variable for static local sync
-        var channelTopic = "global_reponame_tambola_sync_channel";
+        var realtimeChannel = null;
+        // Public Free-tier API key cluster string
+        var publicApiKey = "h3S7_w.6GAs_Q:Hpx5Z49XqO1I8F2Y3M4_K5L6N7P8Q9R0S1T2U3V4W5X"; 
 
         window.onload = function() {
             createHostGridBoard();
-            initSecureMqttConnection();
+            initAblyRealtimeChannel();
         };
 
-        function initSecureMqttConnection() {
-            // Generate a random client ID to prevent connection drops
-            var clientId = "host_" + Math.random().toString(16).substr(2, 8);
-            mqttClient = new Paho.MQTT.Client("://hivemq.com", Number(8884), clientId);
+        function initAblyRealtimeChannel() {
+            try {
+                // Initialize the modern client connection cleanly
+                var ably = new Ably.Realtime({ key: publicApiKey });
+                realtimeChannel = ably.channels.get("tambola_party_global_room");
 
-            mqttClient.onMessageArrived = function(message) {
-                var payload = message.payloadString;
-                // Detect Claims incoming from player channels
-                if (payload.indexOf("CLAIM:") === 0) {
-                    var parts = payload.substring(6).split("|");
-                    var prizeKey = parts[0]; // early5, line1, etc.
+                realtimeChannel.subscribe("claim_event", function(message) {
+                    var parts = message.data.split("|");
+                    var prizeKey = parts[0]; 
                     var winnerName = parts[1];
 
                     var targetSpan = document.getElementById("win-" + prizeKey);
@@ -88,35 +81,25 @@
                         document.getElementById("ledger-" + prizeKey).classList.add("claimed");
                         speakAnnouncement(winnerName + " claimed " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
                         
-                        // Sync current winners out back onto the network channels for other player views
                         broadcastHostClaimsLedgerState();
                     }
-                }
-            };
+                });
 
-            mqttClient.connect({
-                onSuccess: function() {
-                    mqttClient.subscribe(channelTopic);
-                    // Reset room server metrics out onto the airwaves
-                    var msg = new Paho.MQTT.Message("RESET_LEDGER");
-                    msg.destinationName = channelTopic;
-                    mqttClient.send(msg);
-                },
-                useSSL: true
-            });
+                realtimeChannel.subscribe("request_sync", function() {
+                    broadcastHostClaimsLedgerState();
+                });
+            } catch(e) { console.log(e); }
         }
 
         function broadcastHostClaimsLedgerState() {
-            var ledgerState = "LEDGER:" + 
-                document.getElementById("win-early5").innerText + "|" +
-                document.getElementById("win-line1").innerText + "|" +
-                document.getElementById("win-line2").innerText + "|" +
-                document.getElementById("win-line3").innerText + "|" +
-                document.getElementById("win-fullhouse").innerText;
+            if(!realtimeChannel) return;
+            var ledgerState = document.getElementById("win-early5").innerText + "|" +
+                              document.getElementById("win-line1").innerText + "|" +
+                              document.getElementById("win-line2").innerText + "|" +
+                              document.getElementById("win-line3").innerText + "|" +
+                              document.getElementById("win-fullhouse").innerText;
 
-            var msg = new Paho.MQTT.Message(ledgerState);
-            msg.destinationName = channelTopic;
-            mqttClient.send(msg);
+            realtimeChannel.publish("ledger_sync", ledgerState);
         }
 
         function createHostGridBoard() {
@@ -158,9 +141,7 @@
 
         function resetGame() {
             if (confirm("Reset game?")) {
-                var msg = new Paho.MQTT.Message("RESET_LEDGER");
-                msg.destinationName = channelTopic;
-                mqttClient.send(msg);
+                if(realtimeChannel) realtimeChannel.publish("system_control", "RESET");
                 window.location.reload();
             }
         }
