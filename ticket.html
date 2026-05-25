@@ -62,6 +62,7 @@
 
     <script>
         var playerName = "";
+        var generatedFlatString = ""; // Track calculated vector stream 
 
         function generateHashSeed(str) {
             var hash = 0;
@@ -118,24 +119,22 @@
         }
 
         function sendClaim(prizeKey) {
-            localStorage.setItem("tb_claim_trigger", prizeKey + "|" + playerName + "|" + Date.now());
+            // Passes verification ticket matrix payload safely over hardwire vectors
+            localStorage.setItem("tb_claim_trigger", prizeKey + "|" + playerName + "|" + Date.now() + "|" + generatedFlatString);
         }
 
-        // Bulletproof non-array flat character grid mapper configuration
         function buildTicketGridStringMethod() {
             var seed = generateHashSeed(playerName.toLowerCase());
             var grid = document.getElementById("ticket-grid");
             grid.innerHTML = "";
 
-            // Strict static cell template tracking sequences directly without array blocks
             var layoutString = "101101010010110101101001110"; 
+            var temporaryFlatParts = [];
 
             for (var idx = 0; idx < 27; idx++) {
-                var r = Math.floor(idx / 9);
                 var c = idx % 9;
                 var cellType = layoutString.charAt(idx);
 
-                var cell = document.createElement("div");
                 if (cellType === "1") {
                     var minVal = (c * 10) + 1;
                     var maxVal = (c === 8) ? 90 : (c * 10) + 10;
@@ -145,14 +144,24 @@
                     var calculatedNum = minVal + Math.floor(randomFactor * (maxVal - minVal + 1));
                     if (calculatedNum > maxVal) calculatedNum = maxVal;
 
-                    cell.className = "ticket-cell";
-                    cell.innerText = calculatedNum;
-                    cell.onclick = function() { this.classList.toggle("marked"); };
+                    temporaryFlatParts.push(calculatedNum);
                 } else {
-                    cell.className = "ticket-cell empty";
+                    temporaryFlatParts.push(0);
+                }
+            }
+            
+            generatedFlatString = temporaryFlatParts.join("-");
+
+            // Render output items directly onto screen viewport mapping 
+            temporaryFlatParts.forEach(function(val) {
+                var cell = document.createElement("div");
+                cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
+                if(val !== 0) {
+                    cell.innerText = val;
+                    cell.onclick = function() { this.classList.toggle("marked"); };
                 }
                 grid.appendChild(cell);
-            }
+            });
         }
 
         function setTheme(primary, border, mark) {
