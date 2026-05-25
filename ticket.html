@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Personal Ticket</title>
-    <!-- Serverless wireless pipeline library wrapper -->
-    <script src="https://pubnub.com"></script>
     <style>
         :root { --primary-bg: #3498db; --grid-border: #34495e; --mark-color: #f1c40f; }
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; }
@@ -17,15 +15,10 @@
         .ticket-cell { background: #fff; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #2c3e50; border-radius: 4px; cursor: pointer; user-select: none; }
         .ticket-cell.empty { background: #eaedf1; cursor: default; }
         .ticket-cell.marked { background: var(--mark-color); color: #000; font-size: 20px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
-        .theme-selector { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; align-items: center; }
-        .theme-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
         .prize-box { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; text-align: left; }
         .prize-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #f8fafc; border-radius: 6px; margin: 6px 0; border: 1px solid #e2e8f0; }
         .claim-btn { font-size: 12px; padding: 6px 12px; width: auto; background: #e67e22; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
-        .claim-btn:disabled { background: #94a3b8 !important; cursor: not-allowed; }
-        .winner-banner { color: #27ae60; font-weight: bold; font-size: 14px; }
-        #final-gameover-overlay { display: none; background: #fff5f5; border: 3px solid #e74c3c; border-radius: 8px; padding: 15px; margin-top: 15px; font-weight: bold; }
-        #penalty-text { display: none; color: #ef4444; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
+        #token-display-banner { display: none; background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 15px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -35,41 +28,30 @@
         <h2>Enter Your Name</h2>
         <input type="text" id="p-name" placeholder="Enter name (e.g. Pavan)">
         <br><br>
-        <button onclick="generateTicketAndConnect()">Get Ticket</button>
+        <button onclick="generateTicketAndOpen()">Get Ticket</button>
     </div>
 
     <!-- 2. Main Game Dashboard -->
     <div id="ticket-grid-view" class="panel">
-        <div class="theme-selector">
-            <span style="font-weight: bold; font-size: 12px; color: #555;">🎨 Theme:</span>
-            <div class="theme-dot" style="background: #3498db;" onclick="setTheme('#3498db', '#34495e', '#f1c40f')"></div>
-            <div class="theme-dot" style="background: #9b59b6;" onclick="setTheme('#9b59b6', '#2c1a36', '#2ecc71')"></div>
-            <div class="theme-dot" style="background: #e67e22;" onclick="setTheme('#e67e22', '#4a2300', '#3498db')"></div>
-        </div>
-        <h2 id="display-title">My Ticket</h2>
+        <h2>👤 My Ticket</h2>
         <div id="ticket-grid" class="ticket-grid"></div>
 
-        <div class="prize-box">
-            <h3>🏆 Claim Prizes</h3>
-            <div id="penalty-text">❌ False claim! Buttons locked for 10s.</div>
-            <div class="prize-row"><span>Early Five</span> <button class="claim-btn" id="btn-early5" onclick="sendClaim('early5')">Claim</button><span class="winner-banner" id="pwin-early5" style="display:none;"></span></div>
-            <div class="prize-row"><span>First Line</span> <button class="claim-btn" id="btn-line1" onclick="sendClaim('line1')">Claim</button><span class="winner-banner" id="pwin-line1" style="display:none;"></span></div>
-            <div class="prize-row"><span>Second Line</span> <button class="claim-btn" id="btn-line2" onclick="sendClaim('line2')">Claim</button><span class="winner-banner" id="pwin-line2" style="display:none;"></span></div>
-            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" id="btn-line3" onclick="sendClaim('line3')">Claim</button><span class="winner-banner" id="pwin-line3" style="display:none;"></span></div>
-            <div class="prize-row"><span>Full House</span> <button class="claim-btn" id="btn-fullhouse" style="background:#e74c3c;" onclick="sendClaim('fullhouse')">Claim</button><span class="winner-banner" id="pwin-fullhouse" style="display:none;"></span></div>
-        </div>
+        <!-- Verification Token output display bar -->
+        <div id="token-display-banner">Your Code: <span id="token-txt" style="font-size:22px;">-----</span></div>
 
-        <div id="final-gameover-overlay">
-            <h3 style="color:#e74c3c; margin-top:0;">🏁 GAME OVER - FINAL RESULTS 🏁</h3>
-            <div id="final-results-list" style="text-align:left; font-size:14px; line-height:1.6; color:#2c3e50;"></div>
+        <div class="prize-box">
+            <h3>🏆 Verify Claims</h3>
+            <div class="prize-row"><span>Early Five</span> <button class="claim-btn" onclick="requestVerificationCode(0)">Verify Claim</button></div>
+            <div class="prize-row"><span>First Line</span> <button class="claim-btn" onclick="requestVerificationCode(1)">Verify Claim</button></div>
+            <div class="prize-row"><span>Second Line</span> <button class="claim-btn" onclick="requestVerificationCode(2)">Verify Claim</button></div>
+            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" onclick="requestVerificationCode(3)">Verify Claim</button></div>
+            <div class="prize-row"><span>Full House</span> <button class="claim-btn" style="background:#e74c3c;" onclick="requestVerificationCode(4)">Verify Claim</button></div>
         </div>
     </div>
 
     <script>
-        var playerName = "";
-        var generatedFlatString = ""; 
-        var pubnub = null;
-        var roomChannel = "tambola_reponame_live_channel";
+        var nameInput = "";
+        var lastTappedCellNumber = 0;
 
         function generateHashSeed(str) {
             var hash = 0;
@@ -77,101 +59,67 @@
             return Math.abs(hash);
         }
 
-        function generateTicketAndConnect() {
-            playerName = document.getElementById("p-name").value.trim();
-            if (!playerName) { alert("Please enter your name!"); return; }
+        function generateTicketAndOpen() {
+            nameInput = document.getElementById("p-name").value.trim();
+            if (!nameInput) return;
 
             document.getElementById("join-screen").style.display = "none";
             document.getElementById("ticket-grid-view").style.display = "block";
-            document.getElementById("display-title").innerText = "👤 Ticket: " + playerName;
 
-            buildTicketGridDeterministic();
-            initWirelessPipeline();
+            buildTicketGridStringMethod();
         }
 
-        function initWirelessPipeline() {
-            pubnub = new PubNub({
-                publishKey: 'pub-c-49f2b826-6215-46b0-8f96-3b3b497cbbe0',
-                subscribeKey: 'sub-c-1123f1b4-2394-11ef-9fa0-02d50125da06',
-                userId: "player_" + playerName.toLowerCase().replace(/[^a-z0-9]/g, "")
-            });
-
-            pubnub.subscribe({ channels: [roomChannel] });
-
-            pubnub.addListener({
-                message: function(event) {
-                    var packet = event.message;
-                    if (packet.type === "LEDGER_UPDATE") {
-                        syncClaimsUI(packet.state);
-                    }
-                    if (packet.type === "RESET_GAME") {
-                        window.location.reload();
-                    }
-                    if (packet.type === "CLAIM_REJECTED" && packet.name === playerName) {
-                        applyBogusLockPenalty();
-                    }
-                }
-            });
-        }
-
-        function syncClaimsUI(ledgerData) {
-            var claims = ledgerData.split("|");
-            var keys = ["early5", "line1", "line2", "line3", "fullhouse"];
-            var labelKeys = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
+        function requestVerificationCode(prizeId) {
+            if(lastTappedCellNumber === 0) { alert("Mark your winning numbers first!"); return; }
             
-            for (var i = 0; i < 5; i++) {
-                if (claims[i] !== "Unclaimed") {
-                    document.getElementById("btn-" + keys[i]).style.display = "none";
-                    var winSpan = document.getElementById("pwin-" + keys[i]);
-                    winSpan.innerText = claims[i];
-                    winSpan.style.display = "inline";
-                }
-            }
-
-            if (claims !== "Unclaimed") {
-                document.getElementById("final-gameover-overlay").style.display = "block";
-                var resultBox = document.getElementById("final-results-list");
-                resultBox.innerHTML = "";
-                for(var j=0; j<5; j++) {
-                    resultBox.innerHTML += "<b>" + labelKeys[j] + ":</b> " + claims[j] + "<br>";
-                }
-            }
-        }
-
-        function sendClaim(prizeKey) {
-            if(!pubnub) return;
-            pubnub.publish({
-                channel: roomChannel,
-                message: {
-                    type: "CLAIM_REQUEST",
-                    prizeKey: prizeKey,
-                    name: playerName,
-                    numbers: generatedFlatString
-                }
-            });
-        }
-
-        function applyBogusLockPenalty() {
-            document.getElementById("penalty-text").style.display = "block";
-            var buttons = document.querySelectorAll(".claim-btn");
-            buttons.forEach(btn => btn.disabled = true);
+            // Build encryption signatures natively 
+            var nameLenChar = String.fromCharCode(65 + (nameInput.length % 26));
+            var checkSum = (nameInput.length + prizeId + lastTappedCellNumber) * 7 % 899 + 100;
             
-            setTimeout(function() {
-                document.getElementById("penalty-text").style.display = "none";
-                buttons.forEach(btn => btn.disabled = false);
-            }, 10000); 
+            var generatedToken = nameLenChar + prizeId + checkSum;
+
+            var banner = document.getElementById("token-display-banner");
+            document.getElementById("token-txt").innerText = generatedToken;
+            banner.style.display = "block";
+            
+            alert("Your claim code is: " + generatedToken + "\nCall this out to the Host!");
         }
 
-        function buildTicketGridDeterministic() {
-            var seed = generateHashSeed(playerName.toLowerCase());
+        function buildTicketGridStringMethod() {
+            var seed = generateHashSeed(nameInput.toLowerCase());
             var grid = document.getElementById("ticket-grid");
             grid.innerHTML = "";
 
-            var layoutPattern = "101101010010110101101001110"; 
-            var temporaryFlatParts = [];
+            var layoutString = "101101010010110101101001110"; 
 
             for (var idx = 0; idx < 27; idx++) {
                 var c = idx % 9;
-                var cellType = layoutPattern.charAt(idx);
+                var cellType = layoutString.charAt(idx);
 
+                var cell = document.createElement("div");
                 if (cellType === "1") {
+                    var minVal = (c * 10) + 1;
+                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
+                    
+                    seed = (seed * 9301 + 49297) % 233280;
+                    var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));
+                    if (calculatedNum > maxVal) calculatedNum = maxVal;
+
+                    cell.className = "ticket-cell";
+                    cell.innerText = calculatedNum;
+                    
+                    cell.onclick = function() { 
+                        this.classList.toggle("marked"); 
+                        if(this.classList.contains("marked")) {
+                            lastTappedCellNumber = parseInt(this.innerText);
+                        }
+                    };
+                } else {
+                    cell.className = "ticket-cell empty";
+                }
+                grid.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>
