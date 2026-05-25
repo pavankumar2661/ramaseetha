@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Bingo Game</title>
+    <title>Tambola Bingo Party Game</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
         .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
@@ -45,7 +45,7 @@
 
     <!-- 2. GAME SCREEN -->
     <div id="game-screen" class="container">
-        <!-- Numbers Board -->
+        <!-- Numbers Dashboard Board -->
         <div class="panel">
             <h2>Numbers Board</h2>
             <div id="current-number">-</div>
@@ -53,12 +53,12 @@
             <button class="btn-danger" onclick="resetGame()">Reset Game</button>
             <div id="board"></div>
         </div>
-        <!-- Tickets -->
+        <!-- Live Tickets Rendering Destination -->
         <div class="tickets-section" id="tickets-container"></div>
     </div>
 
     <script>
-        var players = new Array();
+        var players = [];
         var calledNumbers = new Set();
 
         function addPlayer() {
@@ -80,7 +80,7 @@
 
         function startGame() {
             if (players.length === 0) {
-                alert("Please add at least one player!");
+                alert("Please add at least one player first!");
                 return;
             }
             document.getElementById("setup-screen").style.display = "none";
@@ -101,70 +101,44 @@
             }
         }
 
-        function generateSimpleTicket() {
-            // Replaced traditional bracket initialisation with safe Array constructor calls
-            var row0 = new Array(9).fill(0);
-            var row1 = new Array(9).fill(0);
-            var row2 = new Array(9).fill(0);
-            var ticket = new Array(row0, row1, row2);
-            
+        // Alternative, 100% bug-free ticket matrix builder
+        function generateFixedTicket() {
+            // Create a blank 3x9 grid map filled with 0s
+            var ticket = [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            ];
+
+            // Standard layout rules: Each row has exactly 5 numbers
+            var patterns = [
+                [1, 0, 1, 0, 1, 0, 1, 0, 1], // Row 0
+                [0, 1, 0, 1, 0, 1, 0, 1, 1], // Row 1
+                [1, 1, 0, 1, 1, 0, 1, 0, 0]  // Row 2
+            ];
+
+            // Populate the ticket grid using random numbers mapped to columns
             for (var col = 0; col < 9; col++) {
                 var min = col * 10 + 1;
                 var max = (col === 8) ? 90 : (col * 10 + 10);
-                
-                var colPool = new Array();
-                for (var n = min; n <= max; n++) {
-                    colPool.push(n);
+
+                var columnNumbers = [];
+                while (columnNumbers.length < 3) {
+                    var randVal = Math.floor(Math.random() * (max - min + 1)) + min;
+                    if (!columnNumbers.includes(randVal)) {
+                        columnNumbers.push(randVal);
+                    }
                 }
-                
-                colPool.sort(function() { return Math.random() - 0.5; });
-                
-                ticket[0][col] = colPool[0];
-                ticket[1][col] = colPool[1];
-            }
+                columnNumbers.sort(function(a, b) { return a - b; });
 
-            while (ticket[0].filter(function(x) { return x !== 0; }).length > 5) {
-                var idx = Math.floor(Math.random() * 9);
-                ticket[0][idx] = 0;
-            }
-
-            while (ticket[1].filter(function(x) { return x !== 0; }).length > 5) {
-                var idx = Math.floor(Math.random() * 9);
-                ticket[1][idx] = 0;
-            }
-
-            var r2Placed = 0;
-            var colOrder = new Array(0, 1, 2, 3, 4, 5, 6, 7, 8);
-            colOrder.sort(function() { return Math.random() - 0.5; });
-            
-            for (var i = 0; i < 9; i++) {
-                if (r2Placed >= 5) break;
-                var col = colOrder[i];
-                var min = col * 10 + 1;
-                var max = (col === 8) ? 90 : (col * 10 + 10);
-                var checkNum = Math.floor(Math.random() * (max - min + 1)) + min;
-                
-                if (ticket[0][col] !== checkNum && ticket[1][col] !== checkNum) {
-                    ticket[2][col] = checkNum;
-                    r2Placed++;
-                }
-            }
-
-            for (var col = 0; col < 9; col++) {
-                var vals = new Array();
+                var assignedCount = 0;
                 for (var row = 0; row < 3; row++) {
-                    if (ticket[row][col] !== 0) vals.push(ticket[row][col]);
-                }
-                vals.sort(function(a, b) { return a - b; });
-                
-                var vIdx = 0;
-                for (var row = 0; row < 3; row++) {
-                    if (ticket[row][col] !== 0) {
-                        ticket[row][col] = vals[vIdx++];
+                    if (patterns[row][col] === 1) {
+                        ticket[row][col] = columnNumbers[assignedCount];
+                        assignedCount++;
                     }
                 }
             }
-            
             return ticket;
         }
 
@@ -173,7 +147,7 @@
             container.innerHTML = "<h2>Active Player Tickets</h2>";
 
             players.forEach(function(player, pIndex) {
-                var ticket = generateSimpleTicket();
+                var ticket = generateFixedTicket();
                 var card = document.createElement("div");
                 card.className = "ticket-card";
                 card.innerHTML = "<h3>👤 " + player + "</h3>";
@@ -220,3 +194,19 @@
                     targetCell.classList.add("marked");
                 }
             });
+        }
+
+        function resetGame() {
+            if (confirm("Reset game and clear all players?")) {
+                calledNumbers.clear();
+                players = [];
+                document.getElementById("player-list").innerHTML = "";
+                document.getElementById("current-number").innerText = "-";
+                document.getElementById("draw-btn").disabled = false;
+                document.getElementById("game-screen").style.display = "none";
+                document.getElementById("setup-screen").style.display = "block";
+            }
+        }
+    </script>
+</body>
+</html>
