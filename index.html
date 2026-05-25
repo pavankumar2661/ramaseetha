@@ -24,7 +24,7 @@
 </head>
 <body>
 
-    <h1>🎙️ Tambola Host Control Panel</h1>
+    <h1>🎙️ Tambola Host (Auto-Validation Active)</h1>
 
     <div class="main-layout">
         <div class="panel">
@@ -39,7 +39,7 @@
         </div>
 
         <div class="panel">
-            <h2>🏆 Claims Ledger</h2>
+            <h2>🏆 Verified Claims Ledger</h2>
             <div id="claims-box">
                 <div class="achievement-row" id="ledger-early5"><span>Early Five:</span> <span class="winner-tag" id="win-early5">Unclaimed</span></div>
                 <div class="achievement-row" id="ledger-line1"><span>First Line:</span> <span class="winner-tag" id="win-line1">Unclaimed</span></div>
@@ -51,7 +51,7 @@
     </div>
 
     <script>
-        var calledNumbersString = "0";
+        var calledNumbersList = [];
         var synth = window.speechSynthesis;
 
         window.onload = function() {
@@ -59,22 +59,69 @@
             localStorage.setItem("tb_ledger_state", "Unclaimed|Unclaimed|Unclaimed|Unclaimed|Unclaimed");
             localStorage.removeItem("tb_claim_trigger");
 
+            // Direct Storage listener loops to grab player claims live
             window.addEventListener('storage', function(e) {
                 if (e.key === 'tb_claim_trigger' && e.newValue) {
                     var parts = e.newValue.split("|");
                     var prizeKey = parts[0];
                     var winnerName = parts[1];
+                    var ticketNumbers = parts[3].split("-").map(Number); // Get player numbers
 
-                    var targetSpan = document.getElementById("win-" + prizeKey);
-                    if (targetSpan && targetSpan.innerText === "Unclaimed") {
-                        targetSpan.innerText = "🏆 " + winnerName;
-                        document.getElementById("ledger-" + prizeKey).classList.add("claimed");
-                        speakAnnouncement(winnerName + " claimed " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
-                        updateGlobalLedgerStorage();
+                    // Perform Auto-Validation against calledNumbersList
+                    var isValid = validateClaim(prizeKey, ticketNumbers);
+
+                    if (isValid) {
+                        var targetSpan = document.getElementById("win-" + prizeKey);
+                        if (targetSpan && targetSpan.innerText === "Unclaimed") {
+                            targetSpan.innerText = "🏆 " + winnerName;
+                            document.getElementById("ledger-" + prizeKey).classList.add("claimed");
+                            speakAnnouncement(winnerName + " verified for " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
+                            updateGlobalLedgerStorage();
+                        }
+                    } else {
+                        speakAnnouncement("Bogus claim by " + winnerName + " rejected!");
                     }
                 }
             });
         };
+
+        // 🧠 Core Validation Logic
+        function validateClaim(prizeKey, numbers) {
+            var markedNumbers = numbers.filter(function(num) {
+                return num !== 0 && calledNumbersList.includes(num);
+            });
+
+            // Early Five: Any 5 valid numbers checked on ticket
+            if (prizeKey === "early5") {
+                return markedNumbers.length >= 5;
+            }
+
+            // Line 1: First 9 elements check (Row 1)
+            if (prizeKey === "line1") {
+                var row1 = numbers.slice(0, 9).filter(x => x !== 0);
+                return row1.every(num => calledNumbersList.includes(num));
+            }
+
+            // Line 2: Middle 9 elements check (Row 2)
+            if (prizeKey === "line2") {
+                var row2 = numbers.slice(9, 18).filter(x => x !== 0);
+                return row2.every(num => calledNumbersList.includes(num));
+            }
+
+            // Line 3: Last 9 elements check (Row 3)
+            if (prizeKey === "line3") {
+                var row3 = numbers.slice(18, 27).filter(x => x !== 0);
+                return row3.every(num => calledNumbersList.includes(num));
+            }
+
+            // Full House: All 15 generated numbers must match drawn pool
+            if (prizeKey === "fullhouse") {
+                var allNumbers = numbers.filter(x => x !== 0);
+                return allNumbers.every(num => calledNumbersList.includes(num));
+            }
+
+            return false;
+        }
 
         function updateGlobalLedgerStorage() {
             var ledgerString = 
@@ -83,6 +130,7 @@
                 document.getElementById("win-line2").innerText + "|" +
                 document.getElementById("win-line3").innerText + "|" +
                 document.getElementById("win-fullhouse").innerText;
+            
             localStorage.setItem("tb_ledger_state", ledgerString);
         }
 
@@ -106,19 +154,17 @@
         }
 
         function drawHostNumber() {
-            var splitList = calledNumbersString.split("-");
-            if (splitList.length >= 91) { alert("All numbers called!"); return; }
+            if (calledNumbersList.length >= 90) { alert("All numbers called!"); return; }
             
             var rand = 0;
-            var isDuplicate = true;
-            while (isDuplicate) {
+            do {
                 rand = Math.floor(Math.random() * 90) + 1;
-                if (!splitList.includes(rand.toString())) { isDuplicate = false; }
-            }
+            } while (calledNumbersList.includes(rand));
 
-            calledNumbersString += "-" + rand;
+            calledNumbersList.push(rand);
             document.getElementById("current-number").innerText = rand;
             document.getElementById("cell-" + rand).classList.add("called");
+            
             speakAnnouncement("Number " + rand);
         }
 
