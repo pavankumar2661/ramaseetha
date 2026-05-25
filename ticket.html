@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Tambola Ticket</title>
+    <!-- Public connection handler -->
+    <script src="https://cloudflare.com"></script>
     <style>
         :root { --primary-bg: #3498db; --grid-border: #34495e; --mark-color: #f1c40f; }
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; }
@@ -27,7 +29,7 @@
         <h2>Enter Room Details</h2>
         <input type="text" id="game-code" placeholder="4-Digit Room Code (e.g. 5842)">
         <input type="text" id="p-name" placeholder="Enter Your Name">
-        <button onclick="generateLocalTicket()">Connect Ticket</button>
+        <button onclick="connectToRoom()">Connect Ticket</button>
     </div>
 
     <!-- Active Ticket View -->
@@ -39,36 +41,63 @@
             <div class="theme-dot" style="background: #e67e22;" onclick="setTheme('#e67e22', '#4a2300', '#3498db')"></div>
         </div>
         <h2 id="display-title">My Ticket</h2>
-        <div id="announcement-banner">Waiting for Host...</div>
+        <div id="announcement-banner">Connecting...</div>
         <div id="ticket-grid" class="ticket-grid"></div>
     </div>
 
     <script>
-        var targetRoom = "";
+        var client = null;
+        var topic = "";
 
-        // Deterministic Seeded Random Number Generator to keep tickets unique per name
         function seededRandom(seed) {
             var x = Math.sin(seed++) * 10000;
             return x - Math.floor(x);
         }
 
-        function generateLocalTicket() {
+        function connectToRoom() {
             var code = document.getElementById("game-code").value.trim();
             var name = document.getElementById("p-name").value.trim();
             if(!code || !name) { alert("Please fill all fields!"); return; }
 
-            var hostRoom = localStorage.getItem("tambola_room");
-            if(code !== hostRoom) {
-                alert("Room not found! Ensure the code matches the host screen.");
-                return;
-            }
+            topic = "git_tambola_party_" + code;
+            client = mqtt.connect("wss://://hivemq.com");
 
-            targetRoom = code;
-            document.getElementById("join-screen").style.display = "none";
-            document.getElementById("ticket-view").style.display = "block";
-            document.getElementById("display-title").innerText = "👤 Player: " + name;
+            client.on("connect", function() {
+                // Send player name to the Host's waiting lobby screen panel
+                client.publish(topic + "_lobby", name);
+                client.subscribe(topic);
 
-            // Generate a seed unique to this specific player's name string length
+                document.getElementById("join-screen").style.display = "none";
+                document.getElementById("ticket-view").style.display = "block";
+                document.getElementById("display-title").innerText = "👤 Player: " + name;
+                document.getElementById("announcement-banner").innerText = "Connected! Waiting for Host to start...";
+                
+                generateLocalTicket(code, name);
+            });
+
+            // Process game calls pushed live by the host's actions
+            client.on("message", function(top, message) {
+                var msgStr = message.toString();
+                
+                if(msgStr === "START") {
+                    document.getElementById("announcement-banner").innerText = "Game started! Waiting for calls...";
+                } else if(msgStr === "RESET") {
+                    window.location.reload();
+                } else {
+                    var calledArr = msgStr.split("-").map(Number);
+                    var latest = calledArr[calledArr.length - 1];
+                    document.getElementById("announcement-banner").innerText = "Last Called: " + latest;
+
+                    // Automatically mark hit items in gold
+                    calledArr.forEach(function(num) {
+                        var cell = document.getElementById("c-" + num);
+                        if(cell) cell.className = "ticket-cell marked";
+                    });
+                }
+            });
+        }
+
+        function generateLocalTicket(code, name) {
             var nameSeed = 0;
             for(var i=0; i<name.length; i++) { nameSeed += name.charCodeAt(i); }
             var seed = parseInt(code) + nameSeed;
@@ -85,8 +114,6 @@
                 var min = col * 10 + 1; var max = (col === 8) ? 90 : (col * 10 + 10);
                 var pool = new Array();
                 for (var n = min; n <= max; n++) { pool.push(n); }
-                
-                // Shuffle column layout based strictly on seed algorithms
                 pool.sort(function() { return seededRandom(seed++) - 0.5; });
 
                 var assigned = 0;
@@ -98,7 +125,6 @@
                 }
             }
 
-            // Clean sorting vertical matrix layouts sequentially
             for (var col = 0; col < 9; col++) {
                 var vals = new Array();
                 for (var row = 0; row < 3; row++) { if (ticket[row][col] !== 0) vals.push(ticket[row][col]); }
@@ -118,27 +144,6 @@
                     grid.appendChild(cell);
                 }
             }
-
-            startLiveSync();
-        }
-
-        function startLiveSync() {
-            // Check storage loops locally every 500ms to pull new calls instantly
-            setInterval(function() {
-                var numbersStr = localStorage.getItem("tambola_numbers") || "";
-                if(numbersStr !== "") {
-                    var calledArr = numbersStr.split("-").map(Number);
-                    var latest = calledArr[calledArr.length - 1];
-                    document.getElementById("announcement-banner").innerText = "Last Called: " + latest;
-
-                    calledArr.forEach(function(num) {
-                        var cell = document.getElementById("c-" + num);
-                        if(cell) cell.className = "ticket-cell marked";
-                    });
-                } else {
-                    document.getElementById("announcement-banner").innerText = "Game Active! Waiting for first call...";
-                }
-            }, 500);
         }
 
         function setTheme(primary, border, mark) {
