@@ -62,14 +62,20 @@
 
     <script>
         var nameInput = "";
-        var flatTicketNumbersList = [4,0,25,32,0,55,0,76,0,0,16,0,38,44,0,67,0,89,5,0,28,0,0,59,68,78,0];
+        var flatTicketNumbersList = [];
+
+        function generateHashSeed(str) {
+            var hash = 0;
+            for (var i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+            return Math.abs(hash);
+        }
 
         function generateTicketAndOpen() {
             nameInput = document.getElementById("p-name").value.trim();
             if (!nameInput) return;
             document.getElementById("join-screen").style.display = "none";
             document.getElementById("ticket-grid-view").style.display = "block";
-            buildFlatStaticTicketData();
+            buildTicketGridStringMethod();
             initWinnersRealtimeListener();
         }
 
@@ -84,15 +90,17 @@
 
         function processWinnersDataString(data) {
             if (!data) return;
-            var parts = data.split("?")[0].split("|");
-            if (parts.length < 5) return;
+            
+            var cleanString = data.split("?");
+            var winners = cleanString[0].split(",");
+            if (winners.length < 5) return;
 
             var prizeNames = ["Early Five", "First Line", "Second Line", "Third Line", "Full House"];
             var isFullHouseClaimed = false;
 
             for (var i = 0; i < 5; i++) {
-                var winnerName = parts[i];
-                if (winnerName && winnerName !== "empty") {
+                var winnerName = winners[i];
+                if (winnerName !== "empty") {
                     var container = document.getElementById("container-" + i);
                     if (container) {
                         if (winnerName.toLowerCase() === nameInput.toLowerCase()) {
@@ -110,7 +118,7 @@
                 var rowsBox = document.getElementById("score-rows-container");
                 rowsBox.innerHTML = "";
                 for (var j = 0; j < 5; j++) {
-                    var finalWinner = parts[j];
+                    var finalWinner = winners[j];
                     if (!finalWinner || finalWinner === "empty") finalWinner = "Unclaimed";
                     rowsBox.innerHTML += "<div class='score-item'><b>" + prizeNames[j] + ":</b> <span>" + finalWinner + "</span></div>";
                 }
@@ -120,19 +128,37 @@
         }
 
         function generateFourDigitPin(prizeId) {
-            var nameStringWeight = 0;
             var cleanNameKey = nameInput.toLowerCase().replace(/\s+/g, '');
-            for (var i = 0; i < cleanNameKey.length; i++) {
-                nameStringWeight += cleanNameKey.charCodeAt(i);
-            }
-            var calculatedPin = 1000 + ((nameStringWeight * 3 + prizeId * 17) % 9000);
+            var nameStringWeight = 0;
+            for(var i=0; i < cleanNameKey.length; i++) { nameStringWeight += cleanNameKey.charCodeAt(i); }
+
+            var calculatedPin = ((nameStringWeight * 3) + (prizeId * 17)) % 9000 + 1000;
+
             document.getElementById("token-txt").innerText = calculatedPin;
             document.getElementById("token-display-banner").style.display = "block";
+            window.scrollTo(0, document.body.scrollHeight);
         }
 
-        function buildFlatStaticTicketData() {
+        function buildTicketGridStringMethod() {
+            var seed = generateHashSeed(nameInput.toLowerCase());
             var grid = document.getElementById("ticket-grid");
             grid.innerHTML = "";
+            var layoutString = "101101010010110101101001110"; 
+
+            for (var idx = 0; idx < 27; idx++) {
+                var c = idx % 9;
+                if (layoutString.charAt(idx) === "1") {
+                    var minVal = (c * 10) + 1;
+                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
+                    seed = (seed * 9301 + 49297) % 233280;
+                    var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));
+                    if (calculatedNum > maxVal) calculatedNum = maxVal;
+                    flatTicketNumbersList.push(calculatedNum);
+                } else {
+                    flatTicketNumbersList.push(0);
+                }
+            }
+
             flatTicketNumbersList.forEach(function(val, index) {
                 var cell = document.createElement("div");
                 cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
