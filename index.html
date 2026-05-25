@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambola Party Game</title>
+    <title>Tambola Host Dashboard</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
         h1, h2 { color: #2c3e50; }
-        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         input { padding: 10px; font-size: 16px; border: 2px solid #cbd5e1; border-radius: 5px; width: 60%; margin-right: 10px; }
-        #game-screen { display: none; margin-top: 20px; }
         #current-number { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 10px 0; height: 100px; }
         button { font-size: 16px; padding: 12px 24px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; margin: 5px; }
         .btn-primary { background: #2ecc71; } .btn-primary:hover { background: #27ae60; }
@@ -19,73 +17,97 @@
         #board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; max-width: 450px; margin: 20px auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .cell { padding: 8px 0; background: #e2e8f0; border-radius: 4px; font-weight: bold; color: #64748b; font-size: 14px; }
         .cell.called { background: #2ecc71; color: white; }
-        .tickets-section { flex: 2; min-width: 320px; display: flex; flex-direction: column; gap: 20px; }
-        .ticket-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-left: 6px solid #3498db; text-align: left; }
-        .ticket-card h3 { margin: 0 0 10px 0; color: #3498db; text-transform: capitalize; }
-        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; background: #34495e; padding: 5px; border-radius: 6px; }
-        .ticket-cell { background: #fff; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #2c3e50; border-radius: 4px; }
-        .ticket-cell.empty { background: #eaedf1; }
-        .ticket-cell.marked { background: #f1c40f; color: #000; font-size: 18px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
+        .player-link-box { background: #f8fafc; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .player-link-box span { font-weight: bold; color: #2c3e50; }
+        .copy-btn { font-size: 12px; padding: 6px 12px; background: #3498db; }
     </style>
 </head>
 <body>
 
-    <h1>🎰 Tambola Party 🎰</h1>
+    <h1>🎙️ Tambola Host Control Panel</h1>
 
-    <!-- 1. SETUP SCREEN -->
-    <div id="setup-screen" class="panel" style="max-width: 500px; margin: 40px auto;">
-        <h2>Add Players</h2>
-        <div style="margin-bottom: 15px;">
-            <input type="text" id="player-name" placeholder="Enter player name...">
-            <button class="btn-secondary" onclick="addPlayer()">Add Player</button>
+    <div class="container">
+        <!-- 1. Player Setup Section -->
+        <div id="setup-section">
+            <h2>Add Players & Share Ticket Links</h2>
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="player-name" placeholder="Enter player name...">
+                <button class="btn-secondary" onclick="generatePlayerLink()">Add Player</button>
+            </div>
+            <div id="links-container"></div>
+            <button class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 20px;" onclick="startCallingGame()">Start Calling Numbers</button>
         </div>
-        <ol id="player-list" style="text-align: left; max-width: 300px; margin: 0 auto 20px auto; color: #475569; font-weight: bold;"></ol>
-        <button class="btn-primary" style="width: 100%; font-size: 18px;" onclick="startGame()">Start Game</button>
-    </div>
 
-    <!-- 2. ACTIVE GAME SCREEN -->
-    <div id="game-screen" class="container">
-        <!-- Host Board -->
-        <div class="panel">
-            <h2>Numbers Board</h2>
+        <!-- 2. Numbers Caller Board Section -->
+        <div id="caller-section" style="display: none;">
+            <h2>Live Calling Board</h2>
             <div id="current-number">-</div>
-            <button class="btn-primary" id="draw-btn" onclick="drawNumber()">Next Number</button>
-            <button class="btn-danger" onclick="resetGame()">Reset Game</button>
+            <button class="btn-primary" onclick="drawHostNumber()">Next Number</button>
+            <button class="btn-danger" onclick="resetHostGame()">Reset Game</button>
             <div id="board"></div>
         </div>
-        <!-- Target Ticket Layout Area -->
-        <div class="tickets-section" id="tickets-container"></div>
     </div>
 
     <script>
-        var players = new Array();
         var calledNumbers = new Set();
 
-        function addPlayer() {
+        function generatePlayerLink() {
             var input = document.getElementById("player-name");
             var name = input.value.trim();
-            if (name) {
-                players.push(name);
-                var li = document.createElement("li");
-                li.innerText = name;
-                document.getElementById("player-list").appendChild(li);
-                input.value = "";
+            if (!name) return;
+
+            // Generate ticket layout strings mathematically without raw brackets
+            var flatTicketParts = new Array();
+            for (var cellIndex = 0; cellIndex < 27; cellIndex++) {
+                var r = Math.floor(cellIndex / 9);
+                var c = cellIndex % 9;
+                
+                var isNumber = false;
+                if (r === 0 && (c === 0 || c === 2 || c === 3 || c === 5 || c === 7)) isNumber = true;
+                if (r === 1 && (c === 1 || c === 3 || c === 4 || c === 6 || c === 8)) isNumber = true;
+                if (r === 2 && (c === 0 || c === 2 || c === 5 || c === 6 || c === 7)) isNumber = true;
+
+                if (isNumber) {
+                    var minVal = (c * 10) + 1;
+                    var maxVal = (c === 8) ? 90 : (c * 10) + 10;
+                    var rowOffset = (r * 3) + Math.floor(Math.random() * 3);
+                    var targetNum = minVal + (rowOffset % (maxVal - minVal + 1));
+                    if (targetNum > maxVal) targetNum = maxVal;
+                    flatTicketParts.push(targetNum);
+                } else {
+                    flatTicketParts.push(0);
+                }
             }
+
+            var ticketString = flatTicketParts.join("-");
+            
+            // Generate link pointing explicitly to player page (ticket.html)
+            var currentPath = window.location.pathname;
+            var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            var playerUrl = window.location.origin + directoryPath + "/ticket.html?name=" + encodeURIComponent(name) + "&data=" + ticketString;
+
+            // Display Link Card to Host
+            var box = document.createElement("div");
+            box.className = "player-link-box";
+            box.innerHTML = "<span>👤 " + name + "</span><button class='copy-btn' onclick='copyUrl(\"" + playerUrl + "\")'>Copy Link</button>";
+            document.getElementById("links-container").appendChild(box);
+
+            input.value = "";
             input.focus();
         }
 
-        function startGame() {
-            if (players.length === 0) {
-                alert("Please add at least one player first!");
-                return;
-            }
-            document.getElementById("setup-screen").style.display = "none";
-            document.getElementById("game-screen").style.display = "flex";
-            createMainBoard();
-            generateAllTickets();
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url);
+            alert("Player ticket link copied successfully!");
         }
 
-        function createMainBoard() {
+        function startCallingGame() {
+            document.getElementById("setup-section").style.display = "none";
+            document.getElementById("caller-section").style.display = "block";
+            createHostGridBoard();
+        }
+
+        function createHostGridBoard() {
             var board = document.getElementById("board");
             board.innerHTML = "";
             for (var i = 1; i <= 90; i++) {
@@ -97,58 +119,11 @@
             }
         }
 
-        function generateAllTickets() {
-            var container = document.getElementById("tickets-container");
-            container.innerHTML = "<h2>Active Player Tickets</h2>";
-
-            // Loop smoothly using flat arithmetic indices
-            for (var pIndex = 0; pIndex < players.length; pIndex++) {
-                var card = document.createElement("div");
-                card.className = "ticket-card";
-                card.innerHTML = "<h3>👤 " + players[pIndex] + "</h3>";
-
-                var grid = document.createElement("div");
-                grid.className = "ticket-grid";
-
-                // Generate ticket numbers deterministically without using nested array strings
-                for (var cellIndex = 0; cellIndex < 27; cellIndex++) {
-                    var r = Math.floor(cellIndex / 9);
-                    var c = cellIndex % 9;
-                    
-                    var isNumber = false;
-                    if (r === 0 && (c === 0 || c === 2 || c === 3 || c === 5 || c === 7)) isNumber = true;
-                    if (r === 1 && (c === 1 || c === 3 || c === 4 || c === 6 || c === 8)) isNumber = true;
-                    if (r === 2 && (c === 0 || c === 2 || c === 5 || c === 6 || c === 7)) isNumber = true;
-
-                    var cell = document.createElement("div");
-                    
-                    if (isNumber) {
-                        var minVal = (c * 10) + 1;
-                        var maxVal = (c === 8) ? 90 : (c * 10) + 10;
-                        var rowOffset = (r * 3) + Math.floor(Math.random() * 3);
-                        var targetNum = minVal + (rowOffset % (maxVal - minVal + 1));
-                        
-                        if(targetNum > maxVal) targetNum = maxVal;
-
-                        cell.className = "ticket-cell";
-                        cell.innerText = targetNum;
-                        cell.id = "t-" + pIndex + "-" + targetNum;
-                    } else {
-                        cell.className = "ticket-cell empty";
-                    }
-                    grid.appendChild(cell);
-                }
-                card.appendChild(grid);
-                container.appendChild(card);
-            }
-        }
-
-        function drawNumber() {
+        function drawHostNumber() {
             if (calledNumbers.size >= 90) {
-                alert("All 90 numbers have been called!");
+                alert("All numbers have been called!");
                 return;
             }
-
             var rand;
             do {
                 rand = Math.floor(Math.random() * 90) + 1;
@@ -157,23 +132,11 @@
             calledNumbers.add(rand);
             document.getElementById("current-number").innerText = rand;
             document.getElementById("cell-" + rand).classList.add("called");
-
-            for (var pIndex = 0; pIndex < players.length; pIndex++) {
-                var targetCell = document.getElementById("t-" + pIndex + "-" + rand);
-                if (targetCell) {
-                    targetCell.classList.add("marked");
-                }
-            }
         }
 
-        function resetGame() {
-            if (confirm("Reset layout completely?")) {
-                calledNumbers.clear();
-                players = new Array();
-                document.getElementById("player-list").innerHTML = "";
-                document.getElementById("current-number").innerText = "-";
-                document.getElementById("game-screen").style.display = "none";
-                document.getElementById("setup-screen").style.display = "block";
+        function resetHostGame() {
+            if (confirm("Reset everything?")) {
+                window.location.reload();
             }
         }
     </script>
