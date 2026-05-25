@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Ticket</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
+        p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
+        .ticket-container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .ticket-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; background: #34495e; padding: 6px; border-radius: 8px; }
+        .ticket-cell { background: #fff; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #2c3e50; border-radius: 4px; cursor: pointer; user-select: none; }
+        .ticket-cell.empty { background: #eaedf1; cursor: default; }
+        .ticket-cell.marked { background: #f1c40f; color: #000; font-size: 20px; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-container">
+        <h1 id="player-title">👤 My Ticket</h1>
+        <p>Tap numbers to cross them out in gold as the host announces them!</p>
+        <div id="grid-box" class="ticket-grid"></div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var nameParam = urlParams.get('name');
+            var dataParam = urlParams.get('data');
+
+            if (nameParam && dataParam) {
+                document.getElementById('player-title').innerText = "👤 Player: " + decodeURIComponent(nameParam);
+                buildMobileViewGrid(dataParam);
+            } else {
+                document.body.innerHTML = "<h1>⚠️ Invalid Ticket Link</h1><p>Please use the private web link provided by your host.</p>";
+            }
+        };
+
+        function buildMobileViewGrid(dataString) {
+            var numbers = dataString.split("-");
+            var gridBox = document.getElementById("grid-box");
+            gridBox.innerHTML = "";
+
+            numbers.forEach(function(valStr) {
+                var value = parseInt(valStr);
+                var cell = document.createElement("div");
+                
+                if (value === 0) {
+                    cell.className = "ticket-cell empty";
+                } else {
+                    cell.className = "ticket-cell";
+                    cell.innerText = value;
+                    // Allows the player to cross-out numbers manually on their touchscreen
+                    cell.onclick = function() {
+                        cell.classList.toggle("marked");
+                    };
+                }
+                gridBox.appendChild(cell);
+            });
+        }
+    </script>
+</body>
+</html>
