@@ -56,12 +56,9 @@
 
         window.onload = function() {
             createHostGridBoard();
-            
-            // Clear storage keys on startup to ensure a fresh session
             localStorage.setItem("tb_ledger_state", "Unclaimed|Unclaimed|Unclaimed|Unclaimed|Unclaimed");
             localStorage.removeItem("tb_claim_trigger");
 
-            // Direct Storage listener loops to grab player claims live
             window.addEventListener('storage', function(e) {
                 if (e.key === 'tb_claim_trigger' && e.newValue) {
                     var parts = e.newValue.split("|");
@@ -73,7 +70,6 @@
                         targetSpan.innerText = "🏆 " + winnerName;
                         document.getElementById("ledger-" + prizeKey).classList.add("claimed");
                         speakAnnouncement(winnerName + " claimed " + document.getElementById("ledger-" + prizeKey).firstElementChild.innerText);
-                        
                         updateGlobalLedgerStorage();
                     }
                 }
@@ -87,7 +83,6 @@
                 document.getElementById("win-line2").innerText + "|" +
                 document.getElementById("win-line3").innerText + "|" +
                 document.getElementById("win-fullhouse").innerText;
-            
             localStorage.setItem("tb_ledger_state", ledgerString);
         }
 
@@ -124,7 +119,6 @@
             calledNumbersString += "-" + rand;
             document.getElementById("current-number").innerText = rand;
             document.getElementById("cell-" + rand).classList.add("called");
-            
             speakAnnouncement("Number " + rand);
         }
 
