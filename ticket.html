@@ -18,12 +18,12 @@
         .prize-box { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; text-align: left; }
         .prize-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #f8fafc; border-radius: 6px; margin: 6px 0; border: 1px solid #e2e8f0; }
         .claim-btn { font-size: 12px; padding: 6px 12px; width: auto; background: #e67e22; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
-        #token-display-banner { display: none; background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 15px; font-size: 16px; }
+        #token-display-banner { display: none; background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 15px; }
+        #token-txt { font-size: 13px; word-break: break-all; font-family: monospace; display: block; margin-top: 5px; background: white; padding: 8px; border-radius: 4px; border: 1px solid #a5d6a7; user-select: all; }
     </style>
 </head>
 <body>
 
-    <!-- 1. Name Entry Screen -->
     <div id="join-screen" class="panel">
         <h2>Enter Your Name</h2>
         <input type="text" id="p-name" placeholder="Enter name (e.g. Pavan)">
@@ -31,27 +31,25 @@
         <button onclick="generateTicketAndOpen()">Get Ticket</button>
     </div>
 
-    <!-- 2. Main Game Dashboard -->
     <div id="ticket-grid-view" class="panel">
-        <h2>👤 My Ticket</h2>
+        <h2> My Ticket</h2>
         <div id="ticket-grid" class="ticket-grid"></div>
 
-        <!-- Verification Token output display bar -->
-        <div id="token-display-banner">Your Code: <span id="token-txt" style="font-size:22px;">-----</span></div>
+        <div id="token-display-banner">📢 Share this verification code with the Host:<br><span id="token-txt">-----</span></div>
 
         <div class="prize-box">
             <h3>🏆 Verify Claims</h3>
-            <div class="prize-row"><span>Early Five</span> <button class="claim-btn" onclick="requestVerificationCode(0)">Verify Claim</button></div>
-            <div class="prize-row"><span>First Line</span> <button class="claim-btn" onclick="requestVerificationCode(1)">Verify Claim</button></div>
-            <div class="prize-row"><span>Second Line</span> <button class="claim-btn" onclick="requestVerificationCode(2)">Verify Claim</button></div>
-            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" onclick="requestVerificationCode(3)">Verify Claim</button></div>
-            <div class="prize-row"><span>Full House</span> <button class="claim-btn" style="background:#e74c3c;" onclick="requestVerificationCode(4)">Verify Claim</button></div>
+            <div class="prize-row"><span>Early Five</span> <button class="claim-btn" onclick="generateValidationCode('E5')">Generate Code</button></div>
+            <div class="prize-row"><span>First Line</span> <button class="claim-btn" onclick="generateValidationCode('L1')">Generate Code</button></div>
+            <div class="prize-row"><span>Second Line</span> <button class="claim-btn" onclick="generateValidationCode('L2')">Generate Code</button></div>
+            <div class="prize-row"><span>Third Line</span> <button class="claim-btn" onclick="generateValidationCode('L3')">Generate Code</button></div>
+            <div class="prize-row"><span>Full House</span> <button class="claim-btn" style="background:#e74c3c;" onclick="generateValidationCode('FH')">Generate Code</button></div>
         </div>
     </div>
 
     <script>
         var nameInput = "";
-        var lastTappedCellNumber = 0;
+        var flatTicketNumbersList = [];
 
         function generateHashSeed(str) {
             var hash = 0;
@@ -62,27 +60,16 @@
         function generateTicketAndOpen() {
             nameInput = document.getElementById("p-name").value.trim();
             if (!nameInput) return;
-
             document.getElementById("join-screen").style.display = "none";
             document.getElementById("ticket-grid-view").style.display = "block";
-
             buildTicketGridStringMethod();
         }
 
-        function requestVerificationCode(prizeId) {
-            if(lastTappedCellNumber === 0) { alert("Mark your winning numbers first!"); return; }
-            
-            // Build encryption signatures natively 
-            var nameLenChar = String.fromCharCode(65 + (nameInput.length % 26));
-            var checkSum = (nameInput.length + prizeId + lastTappedCellNumber) * 7 % 899 + 100;
-            
-            var generatedToken = nameLenChar + prizeId + checkSum;
-
-            var banner = document.getElementById("token-display-banner");
-            document.getElementById("token-txt").innerText = generatedToken;
-            banner.style.display = "block";
-            
-            alert("Your claim code is: " + generatedToken + "\nCall this out to the Host!");
+        function generateValidationCode(typeCode) {
+            var token = typeCode + "-" + nameInput.toUpperCase().replace(/\s+/g, '') + "-" + flatTicketNumbersList.join("-");
+            document.getElementById("token-txt").innerText = token;
+            document.getElementById("token-display-banner").style.display = "block";
+            window.scrollTo(0, document.body.scrollHeight);
         }
 
         function buildTicketGridStringMethod() {
@@ -96,29 +83,27 @@
                 var c = idx % 9;
                 var cellType = layoutString.charAt(idx);
 
-                var cell = document.createElement("div");
                 if (cellType === "1") {
                     var minVal = (c * 10) + 1;
                     var maxVal = (c === 8) ? 90 : (c * 10) + 10;
-                    
                     seed = (seed * 9301 + 49297) % 233280;
                     var calculatedNum = minVal + Math.floor((seed / 233280) * (maxVal - minVal + 1));
                     if (calculatedNum > maxVal) calculatedNum = maxVal;
-
-                    cell.className = "ticket-cell";
-                    cell.innerText = calculatedNum;
-                    
-                    cell.onclick = function() { 
-                        this.classList.toggle("marked"); 
-                        if(this.classList.contains("marked")) {
-                            lastTappedCellNumber = parseInt(this.innerText);
-                        }
-                    };
+                    flatTicketNumbersList.push(calculatedNum);
                 } else {
-                    cell.className = "ticket-cell empty";
+                    flatTicketNumbersList.push(0);
+                }
+            }
+
+            flatTicketNumbersList.forEach(function(val) {
+                var cell = document.createElement("div");
+                cell.className = (val === 0) ? "ticket-cell empty" : "ticket-cell";
+                if(val !== 0) { 
+                    cell.innerText = val; 
+                    cell.onclick = function() { this.classList.toggle("marked"); };
                 }
                 grid.appendChild(cell);
-            }
+            });
         }
     </script>
 </body>
